@@ -1,5 +1,5 @@
-import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Zap, Tag, Settings } from 'lucide-react';
+import { Zap, Tag, Play, Settings, Trash2, Copy } from 'lucide-react';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
 
 interface KeywordBoxData {
   label?: string;
@@ -8,6 +8,10 @@ interface KeywordBoxData {
   templates?: any[];
   qrCampaigns?: any[];
   regexCaseSensitive?: boolean;
+  onPreviewNode?: (id: string) => void;
+  onSelectNode?: (id: string) => void;
+  onCopyNode?: (id: string) => void;
+  onDeleteNode?: (id: string) => void;
 }
 
 export default function KeywordNode(props: NodeProps) {
@@ -15,78 +19,87 @@ export default function KeywordNode(props: NodeProps) {
   const keywords = data.keywords || [];
 
   return (
-    <div className="relative w-[340px] overflow-hidden rounded-3xl border border-teal-200 bg-white shadow-xl hover:shadow-2xl transition-all duration-300">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-4 py-3 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
-              <Zap size={16} className="text-white fill-white/20" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold">{data.label || 'Trigger Node'}</h3>
-              <p className="text-[10px] text-teal-100">WhatsApp Entry Point</p>
-            </div>
+    <div className="relative w-[280px] rounded-2xl border border-slate-200/80 bg-white shadow-lg hover:shadow-xl transition-shadow duration-200 overflow-hidden">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between bg-gradient-to-r from-teal-600 to-emerald-600 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15">
+            <Zap size={14} className="text-white" />
           </div>
-          <div className="rounded-md bg-white/10 p-1 text-teal-100 hover:bg-white/20 hover:text-white cursor-pointer">
-            <Settings size={14} />
+          <div>
+            <h3 className="text-[11px] font-bold text-white leading-tight">{data.label || 'Trigger Node'}</h3>
+            <p className="text-[9px] text-teal-100/80">WhatsApp Entry Point</p>
           </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-0.5">
+          <button onClick={(e) => { e.stopPropagation(); data.onPreviewNode?.(props.id); }}
+            className="p-1 rounded text-white/60 hover:bg-white/15 hover:text-white transition cursor-pointer" title="Preview">
+            <Play size={10} className="fill-current" />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); data.onSelectNode?.(props.id); }}
+            className="p-1 rounded text-white/60 hover:bg-white/15 hover:text-white transition cursor-pointer" title="Edit">
+            <Settings size={10} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); data.onCopyNode?.(props.id); }}
+            className="p-1 rounded text-white/60 hover:bg-white/15 hover:text-white transition cursor-pointer" title="Copy">
+            <Copy size={10} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); data.onDeleteNode?.(props.id); }}
+            className="p-1 rounded text-white/60 hover:bg-rose-400/30 hover:text-rose-200 transition cursor-pointer" title="Delete">
+            <Trash2 size={10} />
+          </button>
         </div>
       </div>
 
-      {/* Body */}
-      <div className="bg-[#ECE5DD] p-4 space-y-3">
-        {/* Helper Note */}
-        <div className="rounded-xl bg-white/80 p-3 shadow-sm border border-teal-100/30">
-          <p className="text-xs font-semibold text-slate-700 mb-1">
-            {data.text || 'Add keywords to start chat'}
-          </p>
-          <p className="text-[10px] text-slate-500">
-            Case Sensitive: <span className="font-semibold">{data.regexCaseSensitive ? 'Yes' : 'No'}</span>
-          </p>
-        </div>
+      {/* ── Body ── */}
+      <div className="p-3 space-y-2.5 bg-slate-50/50">
+        {/* Description */}
+        <p className="text-[10px] text-slate-500 leading-snug">
+          {data.text || 'Add keywords to start chat'}
+        </p>
 
-        {/* Keywords List */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
-            <Tag size={12} className="text-teal-600" />
-            <span>Active Keywords</span>
+        {/* Keywords */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+            <Tag size={10} className="text-teal-500" />
+            <span>Keywords</span>
           </div>
           {keywords.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+            <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
               {keywords.map((kw, i) => (
-                <span
-                  key={i}
-                  className="rounded-full bg-teal-100 px-2.5 py-0.5 text-[11px] font-medium text-teal-800 border border-teal-200"
-                >
+                <span key={i} className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700 border border-teal-200/60">
                   {kw}
                 </span>
               ))}
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-teal-300 bg-teal-50/50 p-2.5 text-center">
-              <p className="text-[11px] text-teal-700 italic">
-                No keywords defined. Responds to any incoming message.
-              </p>
-            </div>
+            <p className="text-[10px] text-slate-400 italic">No keywords — responds to any message</p>
           )}
+        </div>
+
+        {/* Case sensitivity indicator */}
+        <div className="flex items-center gap-1 text-[9px] text-slate-400">
+          <span className={`h-1.5 w-1.5 rounded-full ${data.regexCaseSensitive ? 'bg-amber-400' : 'bg-slate-300'}`}></span>
+          Case Sensitive: {data.regexCaseSensitive ? 'Yes' : 'No'}
         </div>
       </div>
 
-      {/* Source Handles */}
-      {/* Supports both direct 'keyword-right-keyword' source handle and node id specific handles */}
+      {/* ── Handles ── */}
       <Handle
         type="source"
         position={Position.Right}
         id="keyword-right-keyword"
-        className="!h-3.5 !w-3.5 !border-2 !border-white !bg-teal-500 hover:scale-125 transition-transform"
+        className="!h-3 !w-3 !border-2 !border-white !bg-teal-500 hover:scale-125 transition-transform"
       />
       <Handle
         type="source"
         position={Position.Right}
         id={`keyword-right-${props.id}`}
-        className="!h-3.5 !w-3.5 !border-2 !border-white !bg-teal-500 hover:scale-125 transition-transform"
-        style={{ top: '65%' }}
+        className="!h-3 !w-3 !border-2 !border-white !bg-teal-500 hover:scale-125 transition-transform"
+        style={{ top: '70%' }}
       />
     </div>
   );

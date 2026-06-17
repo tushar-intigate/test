@@ -26,7 +26,7 @@ import {
   edgeTypes,
 } from '../edges';
 
-import { Bot, ClipboardList, Save, RefreshCw, Send, CheckCircle2 } from 'lucide-react';
+import { Bot, ClipboardList, Save, RefreshCw, Send, CheckCircle2, Zap, MessageSquare, Play, HelpCircle } from 'lucide-react';
 import NodeInspector from '../components/nodes/NodeInspector';
 
 // Extract the custom flow data nodes and edges from flowStore.ts
@@ -112,10 +112,10 @@ export default function App() {
         const updatedData = { ...node.data };
         let current = updatedData;
         for (let i = 0; i < path.length - 1; i++) {
-          current[path[i]] = Array.isArray(current[path[i]]) 
-            ? [...current[path[i]]] 
-            : typeof current[path[i]] === 'object' && current[path[i]] !== null 
-              ? { ...current[path[i]] } 
+          current[path[i]] = Array.isArray(current[path[i]])
+            ? [...current[path[i]]]
+            : typeof current[path[i]] === 'object' && current[path[i]] !== null
+              ? { ...current[path[i]] }
               : {};
           current = current[path[i]];
         }
@@ -125,6 +125,79 @@ export default function App() {
       })
     );
   }, [setNodes]);
+
+  /**
+   * Add a new node of a specified type to the flow
+   */
+  const addNewNode = useCallback((type: string) => {
+    let position = { x: 100 + Math.random() * 100, y: 100 + Math.random() * 100 };
+    if (reactFlowInstance) {
+      position = reactFlowInstance.screenToFlowPosition({
+        x: window.innerWidth * 0.35,
+        y: window.innerHeight * 0.4,
+      });
+    }
+
+    const newId = `node_${Date.now()}`;
+    let data: any = { label: `New ${type}` };
+
+    if (type === 'keywordBox') {
+      data = {
+        label: 'Trigger Node',
+        text: 'Add keywords to start chat',
+        keywords: ['hello', 'hi'],
+        regexCaseSensitive: false,
+      };
+    } else if (type === 'masterComponent') {
+      data = {
+        content: [
+          {
+            id: `msg-${Date.now()}`,
+            type: 'message',
+            data: {
+              text: 'Hello! Welcome to our automated WhatsApp service.',
+              buttons: [
+                { text: 'Start', id: 1, source_handle_type: 'message_with_button' }
+              ]
+            }
+          }
+        ]
+      };
+    } else if (type === 'startNode') {
+      data = {
+        label: 'Start Flow',
+        surveyTitle: 'Customer Survey',
+        question: "Welcome to the survey! Please click 'Next' to begin.",
+        description: 'Your feedback helps us improve our products and services.'
+      };
+    } else if (type === 'questionNode') {
+      data = {
+        surveyTitle: 'Customer Survey',
+        questions: [
+          { label: 'What is your name?', variable: 'name' }
+        ],
+        answers: {}
+      };
+    } else if (type === 'endNode') {
+      data = {
+        label: 'End Flow',
+        surveyTitle: 'Customer Feedback',
+        question: 'Thank you for your response! Feedback saved.',
+        options: ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied'],
+        answers: {}
+      };
+    }
+
+    const newNode = {
+      id: newId,
+      type,
+      position,
+      data,
+      selected: true,
+    };
+
+    setNodes((nds) => nds.map((n) => ({ ...n, selected: false })).concat(newNode));
+  }, [reactFlowInstance, setNodes]);
 
   /**
    * Node configuration updates trigger flow switch logic
@@ -178,6 +251,54 @@ export default function App() {
   );
 
   /**
+   * WhatsApp Live Simulation Graph Engine
+   */
+  const runNodeAction = useCallback((nodeId: string) => {
+    const node = nodes.find((n: any) => n.id === nodeId);
+    if (!node) return;
+
+    if (node.type === 'masterComponent') {
+      const contents = node.data?.content || [];
+
+      contents.forEach((item: any) => {
+        if (item.type === 'message') {
+          setChatLog((prev) => [...prev, { sender: 'bot', text: item.data?.text || '', type: 'message', options: item.data?.buttons || [] }]);
+        } else if (item.type === 'questionMessage') {
+          setChatLog((prev) => [...prev, { sender: 'bot', text: item.data?.text || '', type: 'question', attribute: item.data?.attribute }]);
+        } else if (item.type === 'listMessage') {
+          setChatLog((prev) => [...prev, { sender: 'bot', text: item.data?.body || '', type: 'list', sections: item.data?.sections || [], buttonTitle: item.data?.buttonTitle }]);
+        } else if (item.type === 'humanIntervention') {
+          setChatLog((prev) => [...prev, { sender: 'system', text: '🔔 Handoff: Conversation transferred to human support HR queue.' }]);
+        } else if (item.type === 'setupWebhook') {
+          const method = item.data?.requestObject?.method || 'GET';
+          const url = item.data?.requestObject?.url || '';
+
+          setChatLog((prev) => [...prev, { sender: 'system', text: `⚙️ API Webhook: Calling [${method}] ${url}...` }]);
+          setSimLoading(true);
+
+          setTimeout(() => {
+            setSimLoading(false);
+            setChatLog((prev) => [...prev, { sender: 'system', text: '✓ Webhook completed: Success' }]);
+
+            // Automatically transition following webhook source handle
+            const wEdge = edges.find((e: any) => e.source === nodeId && e.sourceHandle === `setup-webhoook-right-${nodeId}`);
+            if (wEdge) {
+              setCurrentNodeId(wEdge.target);
+              runNodeAction(wEdge.target);
+            }
+          }, 1000);
+        }
+      });
+    } else if (node.type === 'endNode') {
+      setChatLog((prev) => [
+        ...prev,
+        { sender: 'bot', text: node.data?.question || 'Thank you for your response! Feedback saved.' },
+        { sender: 'system', text: '✓ Survey completed successfully.' }
+      ]);
+    }
+  }, [nodes, edges]);
+
+  /**
    * Inject handlers for interactive canvas inputs
    */
   const nodesWithHandlers = useMemo(
@@ -186,11 +307,57 @@ export default function App() {
         ...node,
         data: {
           ...node.data,
-          onAnswerChange:
-            updateAnswer,
+          onAnswerChange: updateAnswer,
+          onPreviewNode: (id: string) => {
+            setCurrentNodeId(id);
+            setChatLog((prev) => [
+              ...prev,
+              { sender: 'system', text: `Previewing node: ${id}` }
+            ]);
+            runNodeAction(id);
+            setSidebarTab('simulator');
+          },
+          onSelectNode: (id: string) => {
+            setNodes((nds) =>
+              nds.map((n) => ({
+                ...n,
+                selected: n.id === id,
+              }))
+            );
+            setSidebarTab('inspector');
+          },
+          onCopyNode: (id: string) => {
+            setNodes((nds) => {
+              const nodeToCopy = nds.find((n) => n.id === id);
+              if (!nodeToCopy) return nds;
+
+              const newId = `node_${Date.now()}`;
+              const cleanData = JSON.parse(JSON.stringify(nodeToCopy.data));
+              if (cleanData.answers) {
+                cleanData.answers = {};
+              }
+
+              const copiedNode = {
+                ...nodeToCopy,
+                id: newId,
+                selected: true,
+                position: {
+                  x: nodeToCopy.position.x + 40,
+                  y: nodeToCopy.position.y + 40,
+                },
+                data: cleanData,
+              };
+
+              return nds.map((n) => ({ ...n, selected: false })).concat(copiedNode);
+            });
+          },
+          onDeleteNode: (id: string) => {
+            setNodes((nds) => nds.filter((n) => n.id !== id));
+            setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+          },
         },
       })),
-    [nodes, updateAnswer]
+    [nodes, updateAnswer, setNodes, setEdges, runNodeAction, setSidebarTab]
   );
 
   /**
@@ -220,54 +387,6 @@ export default function App() {
       console.log('No answers collected yet.');
     }
   };
-
-  /**
-   * WhatsApp Live Simulation Graph Engine
-   */
-  const runNodeAction = useCallback((nodeId: string) => {
-    const node = nodes.find((n: any) => n.id === nodeId);
-    if (!node) return;
-
-    if (node.type === 'masterComponent') {
-      const contents = node.data?.content || [];
-
-      contents.forEach((item: any) => {
-        if (item.type === 'message') {
-          setChatLog((prev) => [...prev, { sender: 'bot', text: item.data?.text || '', type: 'message', options: item.data?.buttons || [] }]);
-        } else if (item.type === 'questionMessage') {
-          setChatLog((prev) => [...prev, { sender: 'bot', text: item.data?.text || '', type: 'question', attribute: item.data?.attribute }]);
-        } else if (item.type === 'listMessage') {
-          setChatLog((prev) => [...prev, { sender: 'bot', text: item.data?.body || '', type: 'list', sections: item.data?.sections || [], buttonTitle: item.data?.buttonTitle }]);
-        } else if (item.type === 'humanIntervention') {
-          setChatLog((prev) => [...prev, { sender: 'system', text: '🔔 Handoff: Conversation transferred to human support HR queue.' }]);
-        } else if (item.type === 'setupWebhook') {
-          const method = item.data?.requestObject?.method || 'GET';
-          const url = item.data?.requestObject?.url || '';
-          
-          setChatLog((prev) => [...prev, { sender: 'system', text: `⚙️ API Webhook: Calling [${method}] ${url}...` }]);
-          setSimLoading(true);
-
-          setTimeout(() => {
-            setSimLoading(false);
-            setChatLog((prev) => [...prev, { sender: 'system', text: '✓ Webhook completed: Success' }]);
-
-            // Automatically transition following webhook source handle
-            const wEdge = edges.find((e: any) => e.source === nodeId && e.sourceHandle === `setup-webhoook-right-${nodeId}`);
-            if (wEdge) {
-              setCurrentNodeId(wEdge.target);
-              runNodeAction(wEdge.target);
-            }
-          }, 1000);
-        }
-      });
-    } else if (node.type === 'endNode') {
-      setChatLog((prev) => [
-        ...prev,
-        { sender: 'bot', text: node.data?.question || 'Thank you for your response! Feedback saved.' },
-        { sender: 'system', text: '✓ Survey completed successfully.' }
-      ]);
-    }
-  }, [nodes, edges]);
 
   /**
    * Reset Chat Simulation
@@ -436,22 +555,20 @@ export default function App() {
           <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200">
             <button
               onClick={() => handleFlowSourceChange('flowStore')}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
-                flowSource === 'flowStore'
+              className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${flowSource === 'flowStore'
                   ? 'bg-white text-slate-800 shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
-              }`}
+                }`}
             >
               <Bot size={14} />
               WhatsApp Bot
             </button>
             <button
               onClick={() => handleFlowSourceChange('default')}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
-                flowSource === 'default'
+              className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${flowSource === 'default'
                   ? 'bg-white text-slate-800 shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
-              }`}
+                }`}
             >
               <ClipboardList size={14} />
               Customer Survey
@@ -488,6 +605,53 @@ export default function App() {
             <MiniMap style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0' }} zoomable pannable />
             <Controls style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
           </ReactFlow>
+
+          {/* Floating Add Node Action Bar */}
+          <div className="absolute top-4 left-4 z-40 bg-white/95 backdrop-blur border border-slate-200/80 shadow-lg rounded-2xl p-3 flex flex-col md:flex-row items-center gap-3">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider select-none">Add Node:</span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => addNewNode('keywordBox')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 hover:bg-teal-100 border border-teal-200/60 text-teal-700 rounded-xl text-xs font-semibold shadow-sm transition hover:scale-[1.03] cursor-pointer"
+                title="WhatsApp Entry Trigger Keywords"
+              >
+                <Zap size={13} className="text-teal-600 fill-teal-600/10" />
+                Trigger
+              </button>
+              <button
+                onClick={() => addNewNode('masterComponent')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/60 text-indigo-700 rounded-xl text-xs font-semibold shadow-sm transition hover:scale-[1.03] cursor-pointer"
+                title="WhatsApp Messages, Buttons, Lists, Webhooks, Handoff"
+              >
+                <MessageSquare size={13} className="text-indigo-600" />
+                Interactive
+              </button>
+              <button
+                onClick={() => addNewNode('startNode')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 text-emerald-700 rounded-xl text-xs font-semibold shadow-sm transition hover:scale-[1.03] cursor-pointer"
+                title="Survey Start Node"
+              >
+                <Play size={13} className="text-emerald-600 fill-emerald-600/10" />
+                Start Flow
+              </button>
+              <button
+                onClick={() => addNewNode('questionNode')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200/60 text-blue-700 rounded-xl text-xs font-semibold shadow-sm transition hover:scale-[1.03] cursor-pointer"
+                title="Collection of Profile Questions"
+              >
+                <HelpCircle size={13} className="text-blue-600" />
+                Question
+              </button>
+              <button
+                onClick={() => addNewNode('endNode')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200/60 text-rose-700 rounded-xl text-xs font-semibold shadow-sm transition hover:scale-[1.03] cursor-pointer"
+                title="Survey End / Feedback Node"
+              >
+                <CheckCircle2 size={13} className="text-rose-600" />
+                End Flow
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Right Side: Dual Control Panel Sidebar (30% width) */}
@@ -496,21 +660,19 @@ export default function App() {
           <div className="flex border-b border-slate-200 bg-white p-2.5">
             <button
               onClick={() => setSidebarTab('simulator')}
-              className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                sidebarTab === 'simulator'
+              className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${sidebarTab === 'simulator'
                   ? 'bg-violet-50 text-violet-700 shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
-              }`}
+                }`}
             >
               💬 WhatsApp Simulator
             </button>
             <button
               onClick={() => setSidebarTab('inspector')}
-              className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                sidebarTab === 'inspector'
+              className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${sidebarTab === 'inspector'
                   ? 'bg-violet-50 text-violet-700 shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
-              }`}
+                }`}
             >
               ⚙️ Node Editor
             </button>
@@ -572,15 +734,14 @@ export default function App() {
                       const isBot = log.sender === 'bot';
                       return (
                         <div key={idx} className={`space-y-1 ${isBot ? 'self-start' : 'self-end'}`}>
-                          <div className={`relative max-w-[240px] px-3 py-2 rounded-xl text-xs shadow-sm ${
-                            isBot 
-                              ? 'bg-white rounded-tl-none text-slate-800' 
+                          <div className={`relative max-w-[240px] px-3 py-2 rounded-xl text-xs shadow-sm ${isBot
+                              ? 'bg-white rounded-tl-none text-slate-800'
                               : 'bg-[#DCF8C6] rounded-tr-none text-slate-800'
-                          }`}>
+                            }`}>
                             {/* Speech bubble small triangle */}
-                            <div className={`absolute top-0 h-2 w-2 ${isBot ? 'left-[-4px] bg-white' : 'right-[-4px] bg-[#DCF8C6]'}`} 
-                                 style={{ clipPath: isBot ? 'polygon(100% 0, 100% 100%, 0 0)' : 'polygon(0 0, 0 100%, 100% 0)' }}></div>
-                            
+                            <div className={`absolute top-0 h-2 w-2 ${isBot ? 'left-[-4px] bg-white' : 'right-[-4px] bg-[#DCF8C6]'}`}
+                              style={{ clipPath: isBot ? 'polygon(100% 0, 100% 100%, 0 0)' : 'polygon(0 0, 0 100%, 100% 0)' }}></div>
+
                             <p className="leading-relaxed whitespace-pre-wrap">{log.text}</p>
                           </div>
 
