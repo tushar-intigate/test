@@ -1,0 +1,42 @@
+{
+  "options": [
+    {
+      "id": "product-info",
+      "number": "1️⃣",
+      "label": "Product Info",
+      "title": "Product Info",
+      "content": "Discover our comprehensive product suite designed to meet your business needs. Learn about features, integrations, and more."
+    },
+    {
+      "id": "pricing",
+      "number": "2️⃣",
+      "label": "Pricing",
+      "title": "Pricing Plans",
+      "content": "Choose from flexible pricing options tailored to businesses of all sizes. Compare plans and find what works best for you."
+    },
+    {
+      "id": "expert",
+      "number": "3️⃣",
+      "label": "Talk to Expert",
+      "title": "Talk to Expert",
+      "content": "Our team of experts is ready to help. Schedule a consultation to discuss your specific requirements and find the perfect solution."
+    }
+  ],
+  "followUpActions": [
+    {
+      "id": "schedule",
+      "label": "Schedule Call",
+      "type": "primary"
+    },
+    {
+      "id": "email",
+      "label": "Send Email",
+      "type": "secondary"
+    }
+  ],
+  "companyInfo": {
+    "name": "Your Company Name",
+    "status": "typically replies instantly",
+    "avatar": "👋"
+  }
+}

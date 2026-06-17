@@ -1,0 +1,66 @@
+{
+  "nodes": [
+    {
+      "id": "1",
+      "type": "input",
+      "label": "Start Node",
+      "position": { "x": 50, "y": 50 },
+      "route": "/start"
+    },
+    {
+      "id": "2",
+      "type": "default",
+      "label": "Process Node",
+      "position": { "x": 300, "y": 150 },
+      "route": "/process"
+    },
+    {
+      "id": "3",
+      "type": "output",
+      "label": "End Node",
+      "position": { "x": 550, "y": 50 },
+      "route": "/end"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1-2",
+      "source": "1",
+      "target": "2",
+      "animated": true,
+      "label": "Next Step"
+    },
+    {
+      "id": "e2-3",
+      "source": "2",
+      "target": "3",
+      "animated": true,
+      "label": "Complete"
+    }
+  ],
+  "routes": [
+    {
+      "nodeId": "1",
+      "path": "/start",
+      "title": "Start",
+      "description": "Begin the flow"
+    },
+    {
+      "nodeId": "2",
+      "path": "/process",
+      "title": "Process",
+      "description": "Process the data"
+    },
+    {
+      "nodeId": "3",
+      "path": "/end",
+      "title": "End",
+      "description": "Finish the flow"
+    }
+  ],
+  "flowMetadata": {
+    "name": "Default Flow",
+    "version": "1.0.0",
+    "description": "A basic flow with nodes and edges"
+  }
+}
