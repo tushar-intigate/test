@@ -368,18 +368,12 @@ export default function App() {
 
     const flow =
       reactFlowInstance.toObject();
-
-    console.clear();
-    console.log('========== FLOW ==========');
     console.log(JSON.stringify(flow, null, 2));
-    console.log('========== ANSWERS ==========');
 
     let hasAnswers = false;
     flow.nodes.forEach((node) => {
       if (node.data?.answers && Object.keys(node.data.answers).length > 0) {
         hasAnswers = true;
-        console.log(`Node ID: ${node.id} (${node.type})`);
-        console.table(node.data.answers);
       }
     });
 
@@ -556,8 +550,8 @@ export default function App() {
             <button
               onClick={() => handleFlowSourceChange('flowStore')}
               className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${flowSource === 'flowStore'
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white text-slate-800 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
                 }`}
             >
               <Bot size={14} />
@@ -566,8 +560,8 @@ export default function App() {
             <button
               onClick={() => handleFlowSourceChange('default')}
               className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${flowSource === 'default'
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white text-slate-800 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
                 }`}
             >
               <ClipboardList size={14} />
@@ -661,8 +655,8 @@ export default function App() {
             <button
               onClick={() => setSidebarTab('simulator')}
               className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${sidebarTab === 'simulator'
-                  ? 'bg-violet-50 text-violet-700 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-violet-50 text-violet-700 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
                 }`}
             >
               💬 WhatsApp Simulator
@@ -670,8 +664,8 @@ export default function App() {
             <button
               onClick={() => setSidebarTab('inspector')}
               className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${sidebarTab === 'inspector'
-                  ? 'bg-violet-50 text-violet-700 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-violet-50 text-violet-700 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
                 }`}
             >
               ⚙️ Node Editor
@@ -735,8 +729,8 @@ export default function App() {
                       return (
                         <div key={idx} className={`space-y-1 ${isBot ? 'self-start' : 'self-end'}`}>
                           <div className={`relative max-w-[240px] px-3 py-2 rounded-xl text-xs shadow-sm ${isBot
-                              ? 'bg-white rounded-tl-none text-slate-800'
-                              : 'bg-[#DCF8C6] rounded-tr-none text-slate-800'
+                            ? 'bg-white rounded-tl-none text-slate-800'
+                            : 'bg-[#DCF8C6] rounded-tr-none text-slate-800'
                             }`}>
                             {/* Speech bubble small triangle */}
                             <div className={`absolute top-0 h-2 w-2 ${isBot ? 'left-[-4px] bg-white' : 'right-[-4px] bg-[#DCF8C6]'}`}
