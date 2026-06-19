@@ -1,3 +1,7 @@
+import ButtonEdge from './ButtonEdge';
+
 export const initialEdges = [];
 
-export const edgeTypes = {};
+export const edgeTypes = {
+  buttonedge: ButtonEdge,
+};
