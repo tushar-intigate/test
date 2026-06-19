@@ -296,9 +296,192 @@ export default function FlowBuilder() {
   );
 
   const handleSave = () => {
-    const flowData = { nodes, edges };
-    console.log("Saved Flow Data: ", flowData);
-    alert("Flow saved successfully! (Check console for output)");
+    // Generate flowMessages in the original database schema format
+    const flowMessages = nodes.map((node: any) => {
+      if (node.type === 'keywordBox') {
+        const edge = edges.find((e: any) => e.source === node.id);
+        return {
+          messageId: node.id === 'trigger-1' ? 'keyword' : node.id,
+          keywords: node.data?.keywords || [],
+          templates: node.data?.templates || [],
+          qrCampaigns: node.data?.qrCampaigns || [],
+          ad: node.data?.ad || null,
+          ads: node.data?.ads || null,
+          iceBreakers: node.data?.iceBreakers || [],
+          regexCaseSensitive: node.data?.regexCaseSensitive || false,
+          triggerMessageId: edge ? edge.target : '',
+          isOrderEnabled: node.data?.isOrderEnabled || false
+        };
+      }
+
+      if (node.type === 'masterComponent') {
+        const contents = node.data?.content || [];
+        const content = contents.map((item: any) => {
+          if (item.type === 'humanIntervention') {
+            return {
+              type: 'HUMANINTERVENTION',
+              isRequesting: item.data?.isRequesting ?? true
+            };
+          }
+          if (item.type === 'message') {
+            return {
+              type: 'INTERACTIVE',
+              interactive: {
+                type: 'button',
+                header: item.data?.mediaType && item.data.mediaType !== 'none' ? {
+                  type: item.data.mediaType,
+                  [item.data.mediaType]: {
+                    link: item.data.mediaUrl,
+                    filename: item.data.mediaName
+                  }
+                } : undefined,
+                body: {
+                  text: item.data?.text || ''
+                },
+                action: {
+                  buttons: (item.data?.buttons || []).map((btn: any) => {
+                    const edge = edges.find(
+                      (e: any) => e.source === node.id && e.sourceHandle === `message_with_button-right-${node.id}-${btn.id}`
+                    );
+                    return {
+                      type: 'reply',
+                      reply: {
+                        id: btn.id,
+                        title: btn.text
+                      },
+                      triggerMessageId: edge ? edge.target : ''
+                    };
+                  })
+                }
+              }
+            };
+          }
+          if (item.type === 'listMessage') {
+            return {
+              type: 'INTERACTIVE',
+              interactive: {
+                type: 'list',
+                header: {
+                  type: 'text',
+                  text: item.data?.header || ''
+                },
+                body: {
+                  text: item.data?.body || ''
+                },
+                footer: {
+                  text: item.data?.footer || ''
+                },
+                action: {
+                  button: item.data?.buttonTitle || 'Select',
+                  sections: (item.data?.sections || []).map((sec: any) => ({
+                    id: sec.id,
+                    title: sec.title,
+                    rows: (sec.items || []).map((row: any) => {
+                      const edge = edges.find(
+                        (e: any) => e.source === node.id && (e.sourceHandle === row.id || e.sourceHandle === row.source_handle_type)
+                      );
+                      return {
+                        id: row.id,
+                        title: row.title,
+                        description: row.description || '',
+                        triggerMessageId: edge ? edge.target : ''
+                      };
+                    })
+                  }))
+                }
+              }
+            };
+          }
+          if (item.type === 'questionMessage') {
+            const edge = edges.find((e: any) => e.source === node.id && e.sourceHandle === `question-right-${node.id}`);
+            return {
+              type: 'QUESTION',
+              text: item.data?.text || '',
+              attribute: item.data?.attribute || '',
+              triggerMessageId: edge ? edge.target : '',
+              attributeNumberOfAttempt: item.data?.attributeNumberOfAttempt || '1',
+              attributeFormatValue: item.data?.attributeFormatValue || { min: '', max: '', regex: '' },
+              attributeFormatValidationErrorMessage: item.data?.attributeFormatValidationErrorMessage || '',
+              attributeFormat: item.data?.attributeFormat || 'Any',
+              mediaType: item.data?.mediaType || '',
+              delay: item.data?.delay || '0'
+            };
+          }
+          if (item.type === 'setupWebhook') {
+            let edge = edges.find((e: any) => e.source === node.id && e.sourceHandle === `setup-webhoook-right-${node.id}`);
+            if (!edge) {
+              edge = edges.find((e: any) => e.source === node.id && e.sourceHandle === `master-component-next-${node.id}`);
+            }
+            return {
+              type: 'SETUPWEBHOOK',
+              requestObject: item.data?.requestObject || {
+                url: '',
+                method: 'GET',
+                params: [],
+                headers: [],
+                error: null,
+                isTestPass: false,
+                isLoading: false
+              },
+              attribute: item.data?.attribute || '',
+              responseKey: item.data?.responseKey || '',
+              statusCodes: item.data?.statusCodes || [],
+              triggerMessageId: edge ? edge.target : '',
+              capturingAttributes: item.data?.capturingAttributes || [{ attribute: '', responseKey: '' }]
+            };
+          }
+          if (item.type === 'catalogue') {
+            const edge = edges.find((e: any) => e.source === node.id && e.sourceHandle === `master-component-next-${node.id}`);
+            return {
+              type: 'CATALOGUE',
+              text: item.data?.text || '',
+              catalogues: item.data?.catalogues || [],
+              footer: item.data?.footer || '',
+              triggerMessageId: edge ? edge.target : ''
+            };
+          }
+          return item;
+        });
+
+        return {
+          messageId: node.id,
+          content
+        };
+      }
+      return null;
+    }).filter(Boolean);
+
+    // Clean nodes to avoid saving temporary runtime states like active selections, answers, and callback functions
+    const cleanedNodes = nodes.map((node: any) => {
+      const { selected, data, ...rest } = node;
+      const { answers, updateNodeData, onAnswerChange, onPreviewNode, onSelectNode, onCopyNode, onDeleteNode, ...restData } = data || {};
+      return {
+        ...rest,
+        data: restData
+      };
+    });
+
+    const fullFlowPayload = {
+      assistantId: flowData.fetchedFlow[0]?.assistantId || "6a3115d2e5b8680f107218f3",
+      flowObject: {
+        _id: flowData.fetchedFlow[0]?._id || "6a312671e5b8680f107773f0",
+        keywords: flowData.fetchedFlow[0]?.keywords || [],
+        flowMessages,
+        status: flowData.fetchedFlow[0]?.status ?? false,
+        isDeleted: flowData.fetchedFlow[0]?.isDeleted ?? false,
+        type: flowData.fetchedFlow[0]?.type || "USER",
+        hasAiKeyword: flowData.fetchedFlow[0]?.hasAiKeyword ?? false,
+        assistantId: flowData.fetchedFlow[0]?.assistantId || "6a3115d2e5b8680f107218f3",
+        clientId: flowData.fetchedFlow[0]?.clientId || "6a3115d2e5b8680f107218ee",
+        flowName: flowData.fetchedFlow[0]?.flowName || "Recruitment/Job Bot API",
+        flow: {
+          nodes: cleanedNodes,
+          edges: edges
+        }
+      }
+    };
+
+    console.log("Saved Flow Data (Original Format): ", fullFlowPayload);
   };
 
   const handleTestFullFlow = () => {
@@ -311,7 +494,6 @@ export default function FlowBuilder() {
       setSidebarTab('simulator');
       setShowRightPanel(true);
     } else {
-      alert("Please add at least one node to test the flow.");
     }
   };
 

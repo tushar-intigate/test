@@ -21,6 +21,19 @@ export function useSimulationEngine(nodes: any[], edges: any[], setNodes: any) {
         if (item.type === 'message') {
           const buttons = item.data?.buttons || [];
           if (buttons.length > 0) isInteractive = true;
+
+          if (item.data?.mediaType && item.data.mediaType !== 'none' && item.data.mediaUrl) {
+            setChatLog((prev) => [
+              ...prev,
+              {
+                sender: 'bot',
+                type: `media_${item.data.mediaType}`,
+                url: item.data.mediaUrl,
+                name: item.data.mediaName || 'Media File',
+              },
+            ]);
+          }
+
           setChatLog((prev) => [...prev, { sender: 'bot', text: item.data?.text || '', type: 'message', options: buttons }]);
         } else if (item.type === 'questionMessage') {
           isInteractive = true;
