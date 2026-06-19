@@ -17,16 +17,14 @@ import '@xyflow/react/dist/style.css';
 import { flowData } from '../store/flowStore.ts';
 
 import {
-  initialNodes,
   nodeTypes,
 } from '../components/nodes';
 
 import {
-  initialEdges,
   edgeTypes,
 } from '../edges';
 
-import { Bot, ClipboardList, Save, RefreshCw, Send, CheckCircle2, Zap, MessageSquare, Play, HelpCircle } from 'lucide-react';
+import { Bot, Save, RefreshCw, Send, Zap, MessageSquare, HelpCircle, Type, MousePointerClick, Image as ImageIcon, List, ShoppingBag, CheckCircle2 } from 'lucide-react';
 import NodeInspector from '../components/nodes/NodeInspector';
 
 // Extract the custom flow data nodes and edges from flowStore.ts
@@ -49,10 +47,8 @@ const flowStoreEdges = flowStoreEdgesRaw.map((edge: any, index: number) => ({
 }));
 
 export default function App() {
-  const [flowSource, setFlowSource] = useState<'flowStore' | 'default'>('flowStore');
   const [sidebarTab, setSidebarTab] = useState<'simulator' | 'inspector'>('simulator');
 
-  // Load the flowStore nodes/edges as default
   const [nodes, setNodes, onNodesChange] =
     useNodesState<any>(flowStoreNodes);
 
@@ -163,29 +159,6 @@ export default function App() {
           }
         ]
       };
-    } else if (type === 'startNode') {
-      data = {
-        label: 'Start Flow',
-        surveyTitle: 'Customer Survey',
-        question: "Welcome to the survey! Please click 'Next' to begin.",
-        description: 'Your feedback helps us improve our products and services.'
-      };
-    } else if (type === 'questionNode') {
-      data = {
-        surveyTitle: 'Customer Survey',
-        questions: [
-          { label: 'What is your name?', variable: 'name' }
-        ],
-        answers: {}
-      };
-    } else if (type === 'endNode') {
-      data = {
-        label: 'End Flow',
-        surveyTitle: 'Customer Feedback',
-        question: 'Thank you for your response! Feedback saved.',
-        options: ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied'],
-        answers: {}
-      };
     }
 
     const newNode = {
@@ -199,25 +172,7 @@ export default function App() {
     setNodes((nds) => nds.map((n) => ({ ...n, selected: false })).concat(newNode));
   }, [reactFlowInstance, setNodes]);
 
-  /**
-   * Node configuration updates trigger flow switch logic
-   */
-  const handleFlowSourceChange = (source: 'flowStore' | 'default') => {
-    setFlowSource(source);
-    if (source === 'default') {
-      setNodes(initialNodes.map((n: any) => ({
-        ...n,
-        data: {
-          ...n.data,
-          answers: n.data?.answers || {},
-        }
-      })));
-      setEdges(initialEdges);
-    } else {
-      setNodes(flowStoreNodes);
-      setEdges(flowStoreEdges);
-    }
-  };
+
 
   /**
    * Update Survey Answers inside React Flow states
@@ -289,12 +244,6 @@ export default function App() {
           }, 1000);
         }
       });
-    } else if (node.type === 'endNode') {
-      setChatLog((prev) => [
-        ...prev,
-        { sender: 'bot', text: node.data?.question || 'Thank you for your response! Feedback saved.' },
-        { sender: 'system', text: '✓ Survey completed successfully.' }
-      ]);
     }
   }, [nodes, edges]);
 
@@ -390,34 +339,23 @@ export default function App() {
     setInputMessage('');
     setSimLoading(false);
 
-    if (flowSource === 'flowStore') {
-      const triggerNode = nodes.find((n: any) => n.type === 'keywordBox');
-      if (triggerNode) {
-        setCurrentNodeId(triggerNode.id);
-        const keywords = triggerNode.data?.keywords || [];
-        const kText = keywords.length > 0 ? ` [${keywords.join(', ')}]` : '';
-        setChatLog([
-          { sender: 'system', text: `Chat session initialized. Type a keyword trigger${kText} or send 'hello' to start.` }
-        ]);
-      } else {
-        setChatLog([{ sender: 'system', text: 'Error: Keyword trigger node not found.' }]);
-      }
+    const triggerNode = nodes.find((n: any) => n.type === 'keywordBox');
+    if (triggerNode) {
+      setCurrentNodeId(triggerNode.id);
+      const keywords = triggerNode.data?.keywords || [];
+      const kText = keywords.length > 0 ? ` [${keywords.join(', ')}]` : '';
+      setChatLog([
+        { sender: 'system', text: `Chat session initialized. Type a keyword trigger${kText} or send 'hello' to start.` }
+      ]);
     } else {
-      const startNode = nodes.find((n: any) => n.id === '1');
-      if (startNode) {
-        setCurrentNodeId(startNode.id);
-        setChatLog([
-          { sender: 'bot', text: startNode.data?.question || "Welcome to the survey! Click 'Start Survey' to begin." },
-          { sender: 'system', text: 'Click "Start Survey" below or type any message to start.' }
-        ]);
-      }
+      setChatLog([{ sender: 'system', text: 'Error: Keyword trigger node not found.' }]);
     }
-  }, [nodes, flowSource]);
+  }, [nodes]);
 
   // Initialize simulator state on load or flow source change
   useEffect(() => {
     resetSimulator();
-  }, [flowSource, nodes.length]);
+  }, [nodes.length]);
 
   /**
    * Send text response in WhatsApp Simulator
@@ -431,57 +369,38 @@ export default function App() {
 
     setChatLog((prev) => [...prev, { sender: 'user', text }]);
 
-    if (flowSource === 'flowStore') {
-      // If we are at the trigger node
-      if (currentNodeId === 'keyword') {
-        const edge = edges.find((e: any) => e.source === 'keyword');
-        if (edge) {
-          setCurrentNodeId(edge.target);
-          runNodeAction(edge.target);
-        } else {
-          setChatLog((prev) => [...prev, { sender: 'system', text: 'Error: No edges originating from trigger node.' }]);
-        }
+    // If we are at the trigger node
+    if (currentNodeId === 'keyword') {
+      const edge = edges.find((e: any) => e.source === 'keyword');
+      if (edge) {
+        setCurrentNodeId(edge.target);
+        runNodeAction(edge.target);
       } else {
-        // If we are waiting for a text question answer
-        const currentMessage = [...chatLog].reverse().find((m) => m.sender === 'bot');
-        if (currentMessage?.type === 'question' && currentMessage?.attribute) {
-          const attr = currentMessage.attribute;
-          setSimVariables((prev) => ({ ...prev, [attr]: text }));
-
-          // Save back into global node state answers
-          updateAnswer(currentNodeId!, attr, text);
-
-          // Transition through question handle
-          const edge = edges.find((e: any) => e.source === currentNodeId && e.sourceHandle === `question-right-${currentNodeId}`);
-          if (edge) {
-            setCurrentNodeId(edge.target);
-            runNodeAction(edge.target);
-          } else {
-            setChatLog((prev) => [...prev, { sender: 'system', text: 'End of connected flow path.' }]);
-          }
-        } else {
-          setChatLog((prev) => [...prev, { sender: 'system', text: 'Please choose an option from the options panel.' }]);
-        }
+        setChatLog((prev) => [...prev, { sender: 'system', text: 'Error: No edges originating from trigger node.' }]);
       }
     } else {
-      // Default Flow simulation
-      if (currentNodeId === '1') {
-        const edge = edges.find((e: any) => e.source === '1');
+      // If we are waiting for a text question answer
+      const currentMessage = [...chatLog].reverse().find((m) => m.sender === 'bot');
+      if (currentMessage?.type === 'question' && currentMessage?.attribute) {
+        const attr = currentMessage.attribute;
+        setSimVariables((prev) => ({ ...prev, [attr]: text }));
+
+        // Save back into global node state answers
+        updateAnswer(currentNodeId!, attr, text);
+
+        // Transition through question handle
+        const edge = edges.find((e: any) => e.source === currentNodeId && e.sourceHandle === `question-right-${currentNodeId}`);
         if (edge) {
           setCurrentNodeId(edge.target);
           runNodeAction(edge.target);
-        }
-      } else if (currentNodeId === '2') {
-        const edge = edges.find((e: any) => e.source === '2');
-        if (edge) {
-          setCurrentNodeId(edge.target);
-          runNodeAction(edge.target);
+        } else {
+          setChatLog((prev) => [...prev, { sender: 'system', text: 'End of connected flow path.' }]);
         }
       } else {
-        setChatLog((prev) => [...prev, { sender: 'system', text: 'Flow finished.' }]);
+        setChatLog((prev) => [...prev, { sender: 'system', text: 'Please choose an option from the options panel.' }]);
       }
     }
-  }, [currentNodeId, inputMessage, edges, chatLog, flowSource, runNodeAction, updateAnswer]);
+  }, [currentNodeId, inputMessage, edges, chatLog, runNodeAction, updateAnswer]);
 
   /**
    * Click WhatsApp interactive CTA buttons
@@ -538,36 +457,14 @@ export default function App() {
           <div>
             <h1 className="text-sm font-bold text-slate-800 m-0 leading-tight">Intigate Flow Builder & Simulator</h1>
             <p className="text-[11px] text-slate-500 m-0 mt-0.5">
-              Active Graph: <span className="font-semibold text-slate-700">{flowSource === 'flowStore' ? 'Recruitment/Job Bot API' : 'Default Customer Survey'}</span>
+              Active Graph: <span className="font-semibold text-slate-700">Recruitment/Job Bot API</span>
             </p>
           </div>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-4 mt-4 md:mt-0">
-          {/* Flow Segmented Selector */}
-          <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200">
-            <button
-              onClick={() => handleFlowSourceChange('flowStore')}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${flowSource === 'flowStore'
-                ? 'bg-white text-slate-800 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
-                }`}
-            >
-              <Bot size={14} />
-              WhatsApp Bot
-            </button>
-            <button
-              onClick={() => handleFlowSourceChange('default')}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${flowSource === 'default'
-                ? 'bg-white text-slate-800 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
-                }`}
-            >
-              <ClipboardList size={14} />
-              Customer Survey
-            </button>
-          </div>
+
 
           {/* Action Buttons */}
           <button
@@ -600,8 +497,43 @@ export default function App() {
             <Controls style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
           </ReactFlow>
 
+          {/* Builder Sidebar */}
+          <div className='absolute left-0 top-0 h-full w-20 bg-white border-r border-slate-200 shadow-sm z-40 flex flex-col items-center py-4 gap-3'>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Build</div>
+
+            <button className="flex flex-col items-center justify-center gap-1.5 w-16 h-16 bg-slate-50 hover:bg-violet-50 border border-transparent hover:border-violet-200 rounded-2xl transition cursor-grab group">
+              <Type size={20} className="text-slate-500 group-hover:text-violet-600 transition-colors" />
+              <span className="text-[9px] font-bold text-slate-500 group-hover:text-violet-700">Texts</span>
+            </button>
+
+            <button className="flex flex-col items-center justify-center gap-1.5 w-16 h-16 bg-slate-50 hover:bg-blue-50 border border-transparent hover:border-blue-200 rounded-2xl transition cursor-grab group">
+              <HelpCircle size={20} className="text-slate-500 group-hover:text-blue-600 transition-colors" />
+              <span className="text-[9px] font-bold text-slate-500 group-hover:text-blue-700 leading-tight text-center">Ask<br />Questions</span>
+            </button>
+
+            <button className="flex flex-col items-center justify-center gap-1.5 w-16 h-16 bg-slate-50 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 rounded-2xl transition cursor-grab group">
+              <MousePointerClick size={20} className="text-slate-500 group-hover:text-emerald-600 transition-colors" />
+              <span className="text-[9px] font-bold text-slate-500 group-hover:text-emerald-700">Buttons</span>
+            </button>
+
+            <button className="flex flex-col items-center justify-center gap-1.5 w-16 h-16 bg-slate-50 hover:bg-pink-50 border border-transparent hover:border-pink-200 rounded-2xl transition cursor-grab group">
+              <ImageIcon size={20} className="text-slate-500 group-hover:text-pink-600 transition-colors" />
+              <span className="text-[9px] font-bold text-slate-500 group-hover:text-pink-700">Media</span>
+            </button>
+
+            <button className="flex flex-col items-center justify-center gap-1.5 w-16 h-16 bg-slate-50 hover:bg-orange-50 border border-transparent hover:border-orange-200 rounded-2xl transition cursor-grab group">
+              <List size={20} className="text-slate-500 group-hover:text-orange-600 transition-colors" />
+              <span className="text-[9px] font-bold text-slate-500 group-hover:text-orange-700">Lists</span>
+            </button>
+
+            <button className="flex flex-col items-center justify-center gap-1.5 w-16 h-16 bg-slate-50 hover:bg-teal-50 border border-transparent hover:border-teal-200 rounded-2xl transition cursor-grab group">
+              <ShoppingBag size={20} className="text-slate-500 group-hover:text-teal-600 transition-colors" />
+              <span className="text-[9px] font-bold text-slate-500 group-hover:text-teal-700 leading-tight text-center">Catalogue</span>
+            </button>
+          </div>
+
           {/* Floating Add Node Action Bar */}
-          <div className="absolute top-4 left-4 z-40 bg-white/95 backdrop-blur border border-slate-200/80 shadow-lg rounded-2xl p-3 flex flex-col md:flex-row items-center gap-3">
+          <div className="absolute top-4 left-24 z-40 bg-white/95 backdrop-blur border border-slate-200/80 shadow-lg rounded-2xl p-3 flex flex-col md:flex-row items-center gap-3">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider select-none">Add Node:</span>
             <div className="flex flex-wrap gap-2">
               <button
@@ -619,30 +551,6 @@ export default function App() {
               >
                 <MessageSquare size={13} className="text-indigo-600" />
                 Interactive
-              </button>
-              <button
-                onClick={() => addNewNode('startNode')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 text-emerald-700 rounded-xl text-xs font-semibold shadow-sm transition hover:scale-[1.03] cursor-pointer"
-                title="Survey Start Node"
-              >
-                <Play size={13} className="text-emerald-600 fill-emerald-600/10" />
-                Start Flow
-              </button>
-              <button
-                onClick={() => addNewNode('questionNode')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200/60 text-blue-700 rounded-xl text-xs font-semibold shadow-sm transition hover:scale-[1.03] cursor-pointer"
-                title="Collection of Profile Questions"
-              >
-                <HelpCircle size={13} className="text-blue-600" />
-                Question
-              </button>
-              <button
-                onClick={() => addNewNode('endNode')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200/60 text-rose-700 rounded-xl text-xs font-semibold shadow-sm transition hover:scale-[1.03] cursor-pointer"
-                title="Survey End / Feedback Node"
-              >
-                <CheckCircle2 size={13} className="text-rose-600" />
-                End Flow
               </button>
             </div>
           </div>
@@ -704,11 +612,11 @@ export default function App() {
                   {/* WhatsApp Phone Header */}
                   <div className="bg-[#075E54] text-white px-3 py-2.5 flex items-center gap-2 shadow-md">
                     <div className="h-7 w-7 rounded-full bg-emerald-700 border border-emerald-600/40 text-center leading-7 text-xs font-bold">
-                      {flowSource === 'flowStore' ? '🤖' : '📋'}
+                      🤖
                     </div>
                     <div className="flex-1">
                       <h4 className="text-[11px] font-bold truncate leading-tight">
-                        {flowSource === 'flowStore' ? 'Recruitment Bot' : 'Survey Assistant'}
+                        Recruitment Bot
                       </h4>
                       <span className="text-[8px] text-emerald-300 leading-none">online</span>
                     </div>
