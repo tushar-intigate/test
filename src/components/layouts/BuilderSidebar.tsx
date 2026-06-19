@@ -7,8 +7,8 @@ export default function BuilderSidebar() {
   };
 
   const DraggableItem = ({ icon: Icon, label, type, subType, colorClass }: any) => (
-    <div 
-      className={`flex flex-col items-center justify-center gap-1.5 w-16 h-16 bg-slate-50 border border-transparent rounded-2xl transition cursor-grab hover:scale-105 active:cursor-grabbing hover:bg-white hover:shadow-md ${colorClass} group`}
+    <div
+      className={`flex flex-col items-center justify-center gap-1.5 w-[68px] h-[68px] bg-white border border-slate-200/60 rounded-[20px] transition-all duration-300 cursor-grab hover:scale-[1.08] active:cursor-grabbing hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] ${colorClass} group`}
       draggable
       onDragStart={(e) => onDragStart(e, type, subType)}
       title={`Drag to add ${label}`}
@@ -19,11 +19,11 @@ export default function BuilderSidebar() {
   );
 
   return (
-    <div className='h-full w-20 bg-slate-50/50 border-r border-slate-200 z-40 flex flex-col items-center py-4 gap-3 shrink-0 overflow-y-auto no-scrollbar shadow-[inset_-1px_0_10px_rgba(0,0,0,0.02)]'>
+    <div className='h-full w-[90px] bg-white/80 backdrop-blur-md border-r border-slate-200/60 z-40 flex flex-col items-center py-5 gap-3 shrink-0 overflow-y-auto no-scrollbar shadow-[4px_0_24px_-10px_rgba(0,0,0,0.05)]'>
       <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Nodes</div>
 
       <DraggableItem icon={Zap} label="Trigger" type="keywordBox" colorClass="hover:border-teal-300 [&>svg]:group-hover:text-teal-600 [&>span]:group-hover:text-teal-700" />
-      
+
       <div className="w-10 h-px bg-slate-200/60 my-1"></div>
 
       <DraggableItem icon={MessageSquare} label="Message" type="masterComponent" subType="message" colorClass="hover:border-indigo-300 [&>svg]:group-hover:text-indigo-600 [&>span]:group-hover:text-indigo-700" />

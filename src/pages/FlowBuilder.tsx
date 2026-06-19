@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { PanelRightClose, PanelRight } from 'lucide-react';
+import { PanelRightClose, PanelRight, MessageCircle, Settings2 } from 'lucide-react';
 
 import {
   ReactFlow,
@@ -68,9 +68,20 @@ export default function FlowBuilder() {
 
   const initialEdges = flowId === 'new' ? [] : flowStoreEdges;
 
-  const [sidebarTab, setSidebarTab] = useState<'simulator' | 'inspector'>('simulator');
-  const [openBuilder, setOpenBuilder] = useState(true);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+
+  // Layout & Panel State
   const [showRightPanel, setShowRightPanel] = useState(true);
+  const [sidebarTab, setSidebarTab] = useState<'simulator' | 'inspector'>('inspector');
+  const [openBuilder, setOpenBuilder] = useState(true);
+
+  // Simulator State
+  const [simMode, setSimMode] = useState<'single' | 'full'>('full');
+  const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
+  const [chatLog, setChatLog] = useState<any[]>([]);
+  const [simVariables, setSimVariables] = useState<Record<string, string>>({});
+  const [inputMessage, setInputMessage] = useState('');
+  const [simLoading, setSimLoading] = useState(false);
 
   const [nodes, setNodes, onNodesChange] =
     useNodesState<any>(initialNodes);
@@ -84,15 +95,6 @@ export default function FlowBuilder() {
   ] = useState<ReactFlowInstance | null>(
     null
   );
-
-  // WhatsApp Simulation States
-  const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
-  const [chatLog, setChatLog] = useState<any[]>([]);
-  const [simVariables, setSimVariables] = useState<Record<string, string>>({});
-  const [inputMessage, setInputMessage] = useState('');
-  const [simLoading, setSimLoading] = useState(false);
-
-  const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -109,7 +111,7 @@ export default function FlowBuilder() {
 
       const payloadString = event.dataTransfer.getData('application/reactflow');
       if (!payloadString) return;
-      
+
       const payload = JSON.parse(payloadString);
       const type = payload.type;
       const subType = payload.subType;
@@ -130,8 +132,8 @@ export default function FlowBuilder() {
             content: [{
               id: `node_${Date.now()}-${subType}`,
               type: subType,
-              data: subType === 'message' ? { text: '', buttons: [{ text: 'Button', id: Date.now(), source_handle_type: 'message_with_button' }] } 
-                  : subType === 'listMessage' ? { header: '', body: '', footer: '', buttonTitle: 'Select', sectionsCount: 1, itemsCount: 1, sections: [{ title: 'Section 1', id: `list_message-right-${Date.now()}-0`, items: [{ title: 'Item 1', description: '', id: `list_message-right-${Date.now()}-0-item`, source_handle_type: 'list_message' }] }] }
+              data: subType === 'message' ? { text: '', buttons: [{ text: 'Button', id: Date.now(), source_handle_type: 'message_with_button' }] }
+                : subType === 'listMessage' ? { header: '', body: '', footer: '', buttonTitle: 'Select', sectionsCount: 1, itemsCount: 1, sections: [{ title: 'Section 1', id: `list_message-right-${Date.now()}-0`, items: [{ title: 'Item 1', description: '', id: `list_message-right-${Date.now()}-0-item`, source_handle_type: 'list_message' }] }] }
                   : {}
             }]
           } : {})
@@ -157,9 +159,12 @@ export default function FlowBuilder() {
   const onConnect: OnConnect = useCallback(
     (connection) =>
       setEdges((eds) => {
-        // Remove any existing edge that starts from the exact same source and handle
+        // Remove any existing edge that starts from the exact same source/handle or ends at the same target/handle
         const filteredEdges = eds.filter(
-          (e) => !(e.source === connection.source && e.sourceHandle === connection.sourceHandle)
+          (e) => !(
+            (e.source === connection.source && e.sourceHandle === connection.sourceHandle) ||
+            (e.target === connection.target && e.targetHandle === connection.targetHandle)
+          )
         );
 
         return addEdge(
@@ -237,7 +242,23 @@ export default function FlowBuilder() {
           isInteractive = true;
           setChatLog((prev) => [...prev, { sender: 'bot', text: item.data?.body || '', type: 'list', sections: item.data?.sections || [], buttonTitle: item.data?.buttonTitle }]);
         } else if (item.type === 'humanIntervention') {
-          setChatLog((prev) => [...prev, { sender: 'system', text: '🔔 Handoff: Conversation transferred to human support HR queue.' }]);
+          isInteractive = true; // Handoff stops the automated bot flow
+          const isReq = item.data?.isRequesting;
+          setChatLog((prev) => [...prev, { 
+            sender: 'system', 
+            text: isReq 
+              ? '🔔 Handoff: Conversation transferred to human support HR queue.' 
+              : 'ℹ️ Handoff: Node reached, but it is currently set to Inactive.' 
+          }]);
+        } else if (item.type === 'catalogue') {
+          isInteractive = true;
+          setChatLog((prev) => [...prev, { 
+            sender: 'bot', 
+            text: item.data?.text || '', 
+            type: 'catalogue', 
+            catalogues: item.data?.catalogues || [], 
+            footer: item.data?.footer || '' 
+          }]);
         } else if (item.type === 'setupWebhook') {
           hasWebhook = true;
           const method = item.data?.requestObject?.method || 'GET';
@@ -290,6 +311,7 @@ export default function FlowBuilder() {
           onPreviewNode: (id: string) => {
             setCurrentNodeId(id);
             setChatLog([]);
+            setSimMode('single');
             runNodeAction(id);
             setSidebarTab('simulator');
             setShowRightPanel(true);
@@ -302,7 +324,7 @@ export default function FlowBuilder() {
               }))
             );
             resetSimulator();
-            setSidebarTab('simulator');
+            setSidebarTab('inspector');
             setShowRightPanel(true);
           },
           onCopyNode: (id: string) => {
@@ -339,25 +361,23 @@ export default function FlowBuilder() {
     [nodes, setNodes, setEdges, runNodeAction, setSidebarTab]
   );
 
-  /**
-   * Save current flow config and variables
-   */
-  const saveFlow = () => {
-    if (!reactFlowInstance) return;
+  const handleSave = () => {
+    const flowData = { nodes, edges };
+    console.log("Saved Flow Data: ", flowData);
+    alert("Flow saved successfully! (Check console for output)");
+  };
 
-    const flow =
-      reactFlowInstance.toObject();
-    console.log(JSON.stringify(flow, null, 2));
-
-    let hasAnswers = false;
-    flow.nodes.forEach((node) => {
-      if (node.data?.answers && Object.keys(node.data.answers).length > 0) {
-        hasAnswers = true;
-      }
-    });
-
-    if (!hasAnswers) {
-      console.log('No answers collected yet.');
+  const handleTestFullFlow = () => {
+    const triggerNode = nodes.find((n: any) => n.type === 'keywordBox') || nodes[0];
+    if (triggerNode) {
+      setCurrentNodeId(triggerNode.id);
+      setChatLog([]);
+      setSimMode('full');
+      runNodeAction(triggerNode.id);
+      setSidebarTab('simulator');
+      setShowRightPanel(true);
+    } else {
+      alert("Please add at least one node to test the flow.");
     }
   };
 
@@ -445,7 +465,40 @@ export default function FlowBuilder() {
           setChatLog((prev) => [...prev, { sender: 'system', text: 'End of connected flow path.' }]);
         }
       } else {
-        setChatLog((prev) => [...prev, { sender: 'system', text: 'Please choose an option from the options panel.' }]);
+        // Support typing button names
+        if (currentMessage?.type === 'message' && currentMessage?.options?.length > 0) {
+          const matchedBtn = currentMessage.options.find((b: any) => b.text.toLowerCase() === text.toLowerCase());
+          if (matchedBtn) {
+            handleButtonClick(matchedBtn);
+            return;
+          }
+        }
+
+        // Support typing list options
+        if (currentMessage?.type === 'list' && currentMessage?.sections?.length > 0) {
+          let matchedRow: any = null;
+          for (const sec of currentMessage.sections) {
+            for (const item of (sec.items || [])) {
+              if (item.title.toLowerCase() === text.toLowerCase()) {
+                matchedRow = item;
+                break;
+              }
+            }
+          }
+          if (matchedRow) {
+            handleListOptionClick(matchedRow);
+            return;
+          }
+        }
+
+        // If no interactive match, or no interactive elements exist, try default next step
+        const nextEdge = edges.find((e: any) => e.source === currentNodeId && e.sourceHandle === `master-component-next-${currentNodeId}`);
+        if (nextEdge) {
+          setCurrentNodeId(nextEdge.target);
+          runNodeAction(nextEdge.target);
+        } else {
+          setChatLog((prev) => [...prev, { sender: 'system', text: currentMessage?.options?.length > 0 ? 'Please choose a valid option.' : 'Message received. No further steps connected.' }]);
+        }
       }
     }
   }, [currentNodeId, inputMessage, edges, chatLog, runNodeAction, setNodes]);
@@ -476,8 +529,8 @@ export default function FlowBuilder() {
 
     // Try to find edge by row.id first, then by row.source_handle_type
     const edge = edges.find(
-      (e: any) => e.source === currentNodeId && 
-      (e.sourceHandle === row.id || e.sourceHandle === row.source_handle_type)
+      (e: any) => e.source === currentNodeId &&
+        (e.sourceHandle === row.id || e.sourceHandle === row.source_handle_type)
     );
 
     if (edge) {
@@ -489,21 +542,12 @@ export default function FlowBuilder() {
   }, [currentNodeId, edges, runNodeAction]);
 
   return (
-    <div
-      style={{
-        width: '100vw',
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily: 'Inter, system-ui, sans-serif',
-        background: '#f8fafc',
-      }}
-    >
+    <div className="flex h-screen w-full flex-col bg-[#f8fafc] font-sans">
       {/* Top Header Selector Control Bar */}
-      <Header onSave={saveFlow} />
+      <Header onSave={handleSave} onTestFlow={handleTestFullFlow} />
 
       {/* Main Workspace Split Layout */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* Left Side: React Flow Canvas & Sidebar */}
         <div className="flex-1 flex relative border-r border-slate-200">
           {/* Builder Sidebar */}
@@ -514,83 +558,84 @@ export default function FlowBuilder() {
           {/* Canvas Wrapper */}
           <div className="flex-1 relative h-full overflow-hidden" ref={reactFlowWrapper}>
             <ReactFlow
-            nodes={nodesWithHandlers}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onInit={onInit}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-            fitView
-          >
-            <Background variant={BackgroundVariant.Dots} color="#cbd5e1" gap={16} size={1.5} />
-            <MiniMap style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0' }} zoomable pannable />
-            <Controls style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-          </ReactFlow>
+              nodes={nodesWithHandlers}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onInit={onInit}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              fitView
+            >
+              <Background color="#cbd5e1" variant={BackgroundVariant.Cross} gap={24} size={2} />
+              <MiniMap style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0' }} zoomable pannable />
+              <Controls style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+            </ReactFlow>
 
-          {/* Floating Add Node Action Bar */}
-          <AddNodeFloatingBar openBuilder={openBuilder} setOpenBuilder={setOpenBuilder} />
+            {/* Floating Add Node Action Bar */}
+            <AddNodeFloatingBar openBuilder={openBuilder} setOpenBuilder={setOpenBuilder} />
 
-          {/* Right Panel Toggle Button */}
-          <button
-            onClick={() => setShowRightPanel(!showRightPanel)}
-            className="absolute top-4 right-4 z-40 bg-white/95 backdrop-blur border border-slate-200/80 shadow-lg rounded-xl p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
-            title={showRightPanel ? "Hide Control Panel" : "Show Control Panel"}
-          >
-            {showRightPanel ? <PanelRightClose size={18} /> : <PanelRight size={18} />}
-          </button>
+            {/* Right Panel Toggle Button */}
+            <button
+              onClick={() => setShowRightPanel(!showRightPanel)}
+              className="absolute top-4 right-4 z-40 bg-white/80 backdrop-blur-md border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-xl p-2.5 text-slate-500 hover:text-violet-600 hover:bg-white hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+              title={showRightPanel ? "Hide Control Panel" : "Show Control Panel"}
+            >
+              {showRightPanel ? <PanelRightClose size={20} /> : <PanelRight size={20} />}
+            </button>
           </div>
         </div>
 
         {/* Right Side: Dual Control Panel Sidebar (30% width) */}
         {showRightPanel && (
           <div className="w-[450px] bg-slate-50 flex flex-col border-l border-slate-200 shrink-0">
-          {/* Tab Selector */}
-          <div className="flex border-b border-slate-200 bg-white p-2 gap-1">
-            <button
-              onClick={() => setSidebarTab('simulator')}
-              className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${sidebarTab === 'simulator'
-                ? 'bg-violet-50 text-violet-700 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
-                }`}
-            >
-              💬 Simulator
-            </button>
-            <button
-              onClick={() => setSidebarTab('inspector')}
-              className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${sidebarTab === 'inspector'
-                ? 'bg-violet-50 text-violet-700 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
-                }`}
-            >
-              ⚙️ Node Editor
-            </button>
-          </div>
+            {/* Tab Selector */}
+            <div className="bg-slate-50/90 backdrop-blur-sm p-3 border-b border-slate-200 z-10">
+              <div className="flex bg-slate-200/60 p-1 rounded-xl shadow-inner">
+                <button
+                  onClick={() => setSidebarTab('simulator')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[11px] font-bold rounded-lg transition-all duration-300 cursor-pointer ${sidebarTab === 'simulator'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                    }`}
+                >
+                  <MessageCircle size={14} className={sidebarTab === 'simulator' ? 'text-violet-500' : ''} /> Simulator
+                </button>
+                <button
+                  onClick={() => setSidebarTab('inspector')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[11px] font-bold rounded-lg transition-all duration-300 cursor-pointer ${sidebarTab === 'inspector'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                    }`}
+                >
+                  <Settings2 size={14} className={sidebarTab === 'inspector' ? 'text-violet-500' : ''} /> Node Editor
+                </button>
+              </div>
+            </div>
 
-          {/* Sidebar Body */}
-          <div className="flex-1 overflow-y-auto">
-            {sidebarTab === 'simulator' ? (
-              <WhatsAppSimulator
-                chatLog={chatLog}
-                simLoading={simLoading}
-                inputMessage={inputMessage}
-                setInputMessage={setInputMessage}
-                onSendMessage={handleSendMessage}
-                onButtonClick={handleButtonClick}
-                onListOptionClick={handleListOptionClick}
-                simVariables={simVariables}
-                onReset={resetSimulator}
-                simMode="full"
-                onSimModeChange={() => {}}
-              />
-            ) : (
-              <NodeInspector selectedNode={selectedNode} updateNodeData={updateNodeData} />
-            )}
+            {/* Sidebar Body */}
+            <div className="flex-1 overflow-y-auto">
+              {sidebarTab === 'simulator' ? (
+                <WhatsAppSimulator
+                  chatLog={chatLog}
+                  simLoading={simLoading}
+                  inputMessage={inputMessage}
+                  setInputMessage={setInputMessage}
+                  onSendMessage={handleSendMessage}
+                  onButtonClick={handleButtonClick}
+                  onListOptionClick={handleListOptionClick}
+                  simVariables={simVariables}
+                  onCloseSimulator={() => setShowRightPanel(false)}
+                  simMode={simMode}
+                />
+              ) : (
+                <NodeInspector selectedNode={selectedNode} updateNodeData={updateNodeData} />
+              )}
+            </div>
           </div>
-        </div>
         )}
       </div>
     </div>

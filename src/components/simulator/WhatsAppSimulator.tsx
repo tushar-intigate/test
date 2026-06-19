@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, X, MoreVertical, Paperclip, Mic, Send, CheckCircle2, Image as ImageIcon, Video, Music, FileText, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, X, MoreVertical, Paperclip, Mic, Send, CheckCircle2, Image as ImageIcon, Video, Music, FileText, ChevronUp, ChevronDown, ShoppingBag } from 'lucide-react';
 
 interface WhatsAppSimulatorProps {
   chatLog: any[];
@@ -10,9 +10,8 @@ interface WhatsAppSimulatorProps {
   onButtonClick: (btn: any) => void;
   onListOptionClick: (row: any) => void;
   simVariables: Record<string, string>;
-  onReset: () => void;
+  onCloseSimulator: () => void;
   simMode: 'single' | 'full';
-  onSimModeChange: (mode: 'single' | 'full') => void;
 }
 
 function getCurrentTime() {
@@ -27,10 +26,10 @@ const wallpaperStyle = {
 type AttachType = 'image' | 'video' | 'audio' | 'document';
 
 const ATTACH_OPTIONS: { type: AttachType; label: string; icon: any; color: string; bg: string; accept: string }[] = [
-  { type: 'image',    label: 'Image',    icon: ImageIcon,  color: 'text-purple-600', bg: 'bg-purple-100', accept: 'image/*' },
-  { type: 'video',    label: 'Video',    icon: Video,      color: 'text-red-600',    bg: 'bg-red-100',    accept: 'video/*' },
-  { type: 'audio',    label: 'Audio',    icon: Music,      color: 'text-orange-600', bg: 'bg-orange-100', accept: 'audio/*' },
-  { type: 'document', label: 'Document', icon: FileText,   color: 'text-blue-600',   bg: 'bg-blue-100',   accept: '*/*' },
+  { type: 'image', label: 'Image', icon: ImageIcon, color: 'text-purple-600', bg: 'bg-purple-100', accept: 'image/*' },
+  { type: 'video', label: 'Video', icon: Video, color: 'text-red-600', bg: 'bg-red-100', accept: 'video/*' },
+  { type: 'audio', label: 'Audio', icon: Music, color: 'text-orange-600', bg: 'bg-orange-100', accept: 'audio/*' },
+  { type: 'document', label: 'Document', icon: FileText, color: 'text-blue-600', bg: 'bg-blue-100', accept: '*/*' },
 ];
 
 export default function WhatsAppSimulator({
@@ -42,7 +41,7 @@ export default function WhatsAppSimulator({
   onButtonClick,
   onListOptionClick,
   simVariables,
-  onReset,
+  onCloseSimulator,
   simMode,
 }: WhatsAppSimulatorProps) {
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -123,7 +122,7 @@ export default function WhatsAppSimulator({
 
       {/* ── WhatsApp Header Bar ── */}
       <div className="bg-[#008069] text-white flex items-center gap-3 px-3 py-2.5 shadow-md shrink-0">
-        <button onClick={onReset} className="text-white/80 hover:text-white cursor-pointer transition" title="Reset">
+        <button onClick={onCloseSimulator} className="text-white/80 hover:text-white cursor-pointer transition" title="Close Simulator">
           <ArrowLeft size={20} />
         </button>
         <div className="relative shrink-0">
@@ -139,7 +138,7 @@ export default function WhatsAppSimulator({
         </div>
         <div className="flex items-center gap-3 text-white/80">
           <button className="hover:text-white cursor-pointer"><MoreVertical size={18} /></button>
-          <button onClick={onReset} className="hover:text-white cursor-pointer" title="Close"><X size={18} /></button>
+          <button onClick={onCloseSimulator} className="hover:text-white cursor-pointer" title="Close Simulator"><X size={18} /></button>
         </div>
       </div>
 
@@ -173,10 +172,12 @@ export default function WhatsAppSimulator({
               {isMedia ? (
                 renderMedia(log)
               ) : (
-                <div className={`relative max-w-[78%] rounded-lg px-3 py-2 text-[12px] shadow-sm leading-relaxed ${
-                  isBot ? 'bg-white text-[#111] rounded-tl-none' : 'bg-[#dcf8c6] text-[#111] rounded-tr-none'
-                }`}>
+                <div className={`relative max-w-[78%] rounded-2xl px-3 py-2.5 text-[12px] shadow-[0_2px_10px_rgba(0,0,0,0.06)] leading-relaxed ${isBot ? 'bg-white text-[#111] rounded-tl-sm' : 'bg-[#dcf8c6] text-[#111] rounded-tr-sm'
+                  }`}>
                   <p className="whitespace-pre-wrap">{log.text}</p>
+                  {log.footer && (
+                    <p className="text-[10px] text-slate-400 mt-1.5">{log.footer}</p>
+                  )}
                   <span className="block text-right text-[9px] text-slate-400 mt-1">{getCurrentTime()}</span>
                 </div>
               )}
@@ -187,16 +188,15 @@ export default function WhatsAppSimulator({
                     <button
                       key={btn.id}
                       onClick={() => isInteractive ? onButtonClick(btn) : undefined}
-                      className={`w-full bg-white text-[#008069] text-[12px] font-semibold text-center py-2.5 rounded-lg shadow-sm border border-white/80 transition ${
-                        isInteractive ? 'hover:bg-[#f0faf7] active:scale-[0.98] cursor-pointer' : 'cursor-default opacity-75'
-                      }`}
+                      className={`w-full bg-white text-[#008069] text-[12px] font-semibold text-center py-2.5 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-white/80 transition ${isInteractive ? 'hover:bg-[#f0faf7] active:scale-[0.98] cursor-pointer' : 'cursor-default opacity-75'
+                        }`}
                     >
                       {btn.text}
                     </button>
                   ))}
 
                   {log.type === 'list' && log.sections?.map((sec: any) => (
-                    <div key={sec.id} className="rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm">
+                    <div key={sec.id} className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.06)]">
                       {sec.title && (
                         <div className="bg-slate-50 px-3 py-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
                           {sec.title}
@@ -206,9 +206,8 @@ export default function WhatsAppSimulator({
                         <button
                           key={opt.id}
                           onClick={() => isInteractive ? onListOptionClick(opt) : undefined}
-                          className={`flex items-center w-full text-left px-2.5 py-2 gap-2 border-b border-slate-100 last:border-0 transition ${
-                            isInteractive ? 'hover:bg-[#f0faf7] cursor-pointer' : 'cursor-default opacity-75'
-                          }`}
+                          className={`flex items-center w-full text-left px-2.5 py-2 gap-2 border-b border-slate-100 last:border-0 transition ${isInteractive ? 'hover:bg-[#f0faf7] cursor-pointer' : 'cursor-default opacity-75'
+                            }`}
                         >
                           <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-400 shrink-0">{i + 1}</div>
                           <div>
@@ -219,6 +218,15 @@ export default function WhatsAppSimulator({
                       ))}
                     </div>
                   ))}
+
+                  {log.type === 'catalogue' && log.catalogues?.length > 0 && (
+                    <button
+                      className={`w-full bg-white text-[#008069] text-[12px] font-semibold text-center py-2.5 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-white/80 transition flex items-center justify-center gap-1.5 ${isInteractive ? 'hover:bg-[#f0faf7] active:scale-[0.98] cursor-pointer' : 'cursor-default opacity-75'
+                        }`}
+                    >
+                      <ShoppingBag size={14} /> View Catalog
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -262,33 +270,35 @@ export default function WhatsAppSimulator({
       )}
 
       {/* ── Message Input Bar ── */}
-      <div className={`bg-[#f0f2f5] px-2 py-2 flex items-center gap-2 shrink-0 ${!isInteractive ? 'opacity-40 pointer-events-none' : ''}`}>
-        {/* Attachment button */}
-        <button
-          onClick={() => setShowAttach((v) => !v)}
-          className={`w-8 h-8 flex items-center justify-center rounded-full transition cursor-pointer shrink-0 ${showAttach ? 'bg-[#008069] text-white' : 'text-slate-500 hover:text-slate-700'}`}
-          title="Attach file"
-        >
-          {showAttach ? <ChevronUp size={16} /> : <Paperclip size={16} />}
-        </button>
+      {simMode === 'full' && (
+        <div className={`bg-[#f0f2f5] px-2 py-2 flex items-center gap-2 shrink-0 ${!isInteractive ? 'opacity-40 pointer-events-none' : ''}`}>
+          {/* Attachment button */}
+          <button
+            onClick={() => setShowAttach((v) => !v)}
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition cursor-pointer shrink-0 ${showAttach ? 'bg-[#008069] text-white' : 'text-slate-500 hover:text-slate-700'}`}
+            title="Attach file"
+          >
+            {showAttach ? <ChevronUp size={16} /> : <Paperclip size={16} />}
+          </button>
 
-        <div className="flex-1 flex items-center bg-white rounded-full px-4 py-2 shadow-sm gap-2">
-          <input
-            type="text"
-            placeholder="Type a message"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && onSendMessage()}
-            className="flex-1 text-[12px] text-[#111] outline-none bg-transparent placeholder:text-slate-400"
-          />
+          <div className="flex-1 flex items-center bg-white rounded-full px-4 py-2 shadow-sm gap-2">
+            <input
+              type="text"
+              placeholder="Type a message"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && onSendMessage()}
+              className="flex-1 text-[12px] text-[#111] outline-none bg-transparent placeholder:text-slate-400"
+            />
+          </div>
+          <button
+            onClick={() => onSendMessage()}
+            className="w-10 h-10 bg-[#008069] text-white rounded-full flex items-center justify-center shadow hover:bg-[#006b58] active:scale-95 transition cursor-pointer shrink-0"
+          >
+            {inputMessage.trim() ? <Send size={16} className="ml-0.5" /> : <Mic size={16} />}
+          </button>
         </div>
-        <button
-          onClick={() => onSendMessage()}
-          className="w-10 h-10 bg-[#008069] text-white rounded-full flex items-center justify-center shadow hover:bg-[#006b58] active:scale-95 transition cursor-pointer shrink-0"
-        >
-          {inputMessage.trim() ? <Send size={16} className="ml-0.5" /> : <Mic size={16} />}
-        </button>
-      </div>
+      )}
 
       {/* ── Collected Variables Panel ── */}
       {simMode === 'full' && Object.keys(simVariables).length > 0 && (

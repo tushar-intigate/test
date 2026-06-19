@@ -1,4 +1,4 @@
-import { Zap, Tag, Play, Settings, Trash2, Copy } from 'lucide-react';
+import { Zap, Tag, Settings, Trash2, Copy, Eye } from 'lucide-react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 
 interface KeywordBoxData {
@@ -37,7 +37,7 @@ export default function KeywordNode(props: NodeProps) {
         <div className="flex items-center gap-0.5">
           <button onClick={(e) => { e.stopPropagation(); data.onPreviewNode?.(props.id); }}
             className="p-1 rounded text-white/60 hover:bg-white/15 hover:text-white transition cursor-pointer" title="Preview">
-            <Play size={10} className="fill-current" />
+            <Eye size={10} className="fill-current" />
           </button>
           <button onClick={(e) => { e.stopPropagation(); data.onSelectNode?.(props.id); }}
             className="p-1 rounded text-white/60 hover:bg-white/15 hover:text-white transition cursor-pointer" title="Edit">
