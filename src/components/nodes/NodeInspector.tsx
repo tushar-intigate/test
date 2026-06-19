@@ -49,7 +49,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
             type="text"
             value={label}
             onChange={(e) => updateNodeData(id, ['label'], e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:bg-white focus:border-violet-500 outline-none"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-xs text-slate-700 focus:bg-white focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all shadow-sm"
           />
         </div>
 
@@ -60,7 +60,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
             value={text}
             rows={3}
             onChange={(e) => updateNodeData(id, ['text'], e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:bg-white focus:border-violet-500 outline-none resize-none"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-xs text-slate-700 focus:bg-white focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none resize-none transition-all shadow-sm"
           />
         </div>
 
@@ -75,7 +75,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
             value={keywords.join(', ')}
             onChange={handleKeywordsChange}
             placeholder="e.g. hello, hi, start, join"
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:bg-white focus:border-violet-500 outline-none"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-xs text-slate-700 focus:bg-white focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all shadow-sm"
           />
         </div>
 
@@ -133,7 +133,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
                       value={item.data?.text || ''}
                       rows={3}
                       onChange={(e) => updateNodeData(id, [...basePath, 'data', 'text'], e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:border-violet-500 outline-none resize-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none resize-none transition-all shadow-sm"
                     />
                   </div>
 
@@ -192,7 +192,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
                       value={item.data?.text || ''}
                       rows={3}
                       onChange={(e) => updateNodeData(id, [...basePath, 'data', 'text'], e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:border-violet-500 outline-none resize-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none resize-none transition-all shadow-sm"
                     />
                   </div>
 
@@ -203,7 +203,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
                         type="text"
                         value={item.data?.attribute || ''}
                         onChange={(e) => updateNodeData(id, [...basePath, 'data', 'attribute'], e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:border-violet-500 outline-none"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all shadow-sm"
                       />
                     </div>
                     <div className="space-y-1">
@@ -211,7 +211,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
                       <select
                         value={item.data?.attributeFormat || 'Any'}
                         onChange={(e) => updateNodeData(id, [...basePath, 'data', 'attributeFormat'], e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs focus:border-violet-500 outline-none"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-2 py-2.5 text-xs text-slate-700 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all shadow-sm"
                       >
                         <option value="Any">Any Input</option>
                         <option value="Email">Email Address</option>
@@ -227,7 +227,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
                       type="number"
                       value={item.data?.attributeNumberOfAttempt || '1'}
                       onChange={(e) => updateNodeData(id, [...basePath, 'data', 'attributeNumberOfAttempt'], e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:border-violet-500 outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all shadow-sm"
                     />
                   </div>
                 </div>
@@ -242,7 +242,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
                       <select
                         value={item.data?.requestObject?.method || 'GET'}
                         onChange={(e) => updateNodeData(id, [...basePath, 'data', 'requestObject', 'method'], e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs focus:border-violet-500 outline-none"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-2 py-2.5 text-xs text-slate-700 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all shadow-sm"
                       >
                         <option value="GET">GET</option>
                         <option value="POST">POST</option>
@@ -256,7 +256,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
                         type="text"
                         value={item.data?.requestObject?.url || ''}
                         onChange={(e) => updateNodeData(id, [...basePath, 'data', 'requestObject', 'url'], e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:border-violet-500 outline-none"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all shadow-sm"
                       />
                     </div>
                   </div>
@@ -329,7 +329,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
                         type="text"
                         value={item.data?.header || ''}
                         onChange={(e) => updateNodeData(id, [...basePath, 'data', 'header'], e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:border-violet-500 outline-none"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all shadow-sm"
                       />
                     </div>
                     <div className="space-y-1">
@@ -338,7 +338,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
                         type="text"
                         value={item.data?.buttonTitle || ''}
                         onChange={(e) => updateNodeData(id, [...basePath, 'data', 'buttonTitle'], e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:border-violet-500 outline-none"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all shadow-sm"
                       />
                     </div>
                   </div>
@@ -349,7 +349,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
                       value={item.data?.body || ''}
                       rows={2}
                       onChange={(e) => updateNodeData(id, [...basePath, 'data', 'body'], e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:border-violet-500 outline-none resize-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none resize-none transition-all shadow-sm"
                     />
                   </div>
 
@@ -359,14 +359,14 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
                       type="text"
                       value={item.data?.footer || ''}
                       onChange={(e) => updateNodeData(id, [...basePath, 'data', 'footer'], e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:border-violet-500 outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all shadow-sm"
                     />
                   </div>
 
                   {/* List Selector Items Edit */}
                   <div className="space-y-2">
                     <label className="text-[10px] font-semibold text-slate-500 block">List Selector Options</label>
-                    
+
                     {/* Maps over sections */}
                     {(item.data?.sections || []).map((section: any, sIdx: number) => (
                       <div key={section.id || sIdx} className="space-y-2 bg-white p-2 rounded-lg border border-slate-200">
@@ -386,8 +386,8 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
                               const items = section.items || [];
                               const nextId = items.length + 1;
                               const itemId = `list_message-right-${id}-${sIdx}-${Date.now()}-|None-|6a312671e5b8680f107773f0`;
-                              const newItem = { 
-                                title: `Option ${nextId}`, 
+                              const newItem = {
+                                title: `Option ${nextId}`,
                                 description: `Description ${nextId}`,
                                 id: itemId,
                                 source_handle_type: itemId
@@ -487,7 +487,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
           type="text"
           value={data.label || ''}
           onChange={(e) => updateNodeData(id, ['label'], e.target.value)}
-          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:bg-white focus:border-violet-500 outline-none"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-xs text-slate-700 focus:bg-white focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all shadow-sm"
         />
       </div>
 
@@ -498,7 +498,7 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
             value={data.question || ''}
             rows={3}
             onChange={(e) => updateNodeData(id, ['question'], e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:bg-white focus:border-violet-500 outline-none resize-none"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-xs text-slate-700 focus:bg-white focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none resize-none transition-all shadow-sm"
           />
         </div>
       )}

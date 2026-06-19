@@ -8,7 +8,6 @@ import {
   List,
   CheckCircle2,
   AlertCircle,
-  Play,
   Settings,
   Trash2,
   Copy,
@@ -16,7 +15,9 @@ import {
   Image as ImageIcon,
   Plus,
   CircleDot,
-  ToggleRight
+  ToggleRight,
+  X,
+  Eye
 } from 'lucide-react';
 
 interface ContentItem {
@@ -68,7 +69,7 @@ export default function MasterComponentNode(props: NodeProps) {
   };
 
   return (
-    <div className="relative w-[320px] rounded-[18px] border border-slate-200/50 bg-[#f5f1eb] shadow-xl hover:shadow-2xl transition-shadow duration-200 overflow-hidden pb-4">
+    <div className="relative w-[320px] rounded-[24px] border border-slate-200/60 bg-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] hover:shadow-[0_15px_50px_-10px_rgba(0,0,0,0.12)] transition-shadow duration-300 pb-4">
 
       {/* Target Input Handle on Left */}
       <Handle
@@ -81,8 +82,8 @@ export default function MasterComponentNode(props: NodeProps) {
 
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between bg-[#e8eef1] px-4 py-3 relative border-b border-[#d8e3df]">
-        <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#0a6c5e] rounded-tl-[18px]"></div>
+      <div className="flex items-center justify-between bg-gradient-to-r from-emerald-50/50 to-teal-50/50 px-4 py-3.5 relative border-b border-slate-100 rounded-t-[24px]">
+        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-tl-[24px]"></div>
         <div className="flex items-center gap-2 pl-1">
           {contentItems[0]?.type === 'listMessage' ? <List size={16} className="text-[#0a6c5e]" /> :
             contentItems[0]?.type === 'questionMessage' ? <HelpCircle size={16} className="text-[#0a6c5e]" /> :
@@ -103,7 +104,7 @@ export default function MasterComponentNode(props: NodeProps) {
         <div className="flex items-center gap-0.5">
           <button onClick={(e) => { e.stopPropagation(); data.onPreviewNode?.(props.id); }}
             className="p-1 rounded text-[#0a6c5e]/60 hover:bg-[#0a6c5e]/10 hover:text-[#0a6c5e] transition cursor-pointer" title="Preview">
-            <Play size={12} className="fill-current" />
+            <Eye size={12} className="fill-current" />
           </button>
           <button onClick={(e) => { e.stopPropagation(); data.onSelectNode?.(props.id); }}
             className="p-1 rounded text-[#0a6c5e]/60 hover:bg-[#0a6c5e]/10 hover:text-[#0a6c5e] transition cursor-pointer" title="Edit">
@@ -121,7 +122,7 @@ export default function MasterComponentNode(props: NodeProps) {
       </div>
 
       {/* ── Content Area ── */}
-      <div className="p-3 space-y-3 max-h-[500px] overflow-y-auto bg-slate-50/50">
+      <div className="p-3 space-y-3 bg-slate-50/50">
         {contentItems.map((item, index) => {
           switch (item.type) {
 
@@ -150,6 +151,15 @@ export default function MasterComponentNode(props: NodeProps) {
                       </div>
                       <span className={`text-[9px] font-medium ${text.length === 0 || text.length > 1024 ? 'text-rose-500' : 'text-slate-400'}`}>{text.length}/1024</span>
                     </div>
+
+                    {/* Default Edge Point */}
+                    <Handle
+                      type="source"
+                      position={Position.Right}
+                      id={`message-right-${props.id}`}
+                      className="!h-2.5 !w-2.5 !border-2 !border-white !bg-[#00A884] hover:scale-125 transition-transform"
+                      style={{ right: -6, top: '50%', transform: 'translateY(-50%)' }}
+                    />
                   </div>
 
                   {/* Reply Buttons List */}
@@ -168,20 +178,34 @@ export default function MasterComponentNode(props: NodeProps) {
                               maxLength={20}
                             />
                           </div>
-                          <div className="flex flex-col items-end shrink-0 pl-2">
+                          <div className="flex flex-col items-end justify-between shrink-0 pl-2 h-full py-0.5">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newButtons = [...buttons];
+                                newButtons.splice(bIdx, 1);
+                                updateItemData(index, 'buttons', newButtons);
+                              }}
+                              className="text-slate-300 hover:text-rose-500 transition-colors cursor-pointer p-0.5 rounded hover:bg-rose-50"
+                              title="Remove Button"
+                            >
+                              <X size={12} />
+                            </button>
                             <span className={`text-[8px] font-medium ${btn.text.length === 0 || btn.text.length > 20 ? 'text-rose-500' : 'text-slate-400'}`}>{btn.text.length}/20</span>
                           </div>
                         </div>
                         {btn.text.length === 0 && (
                           <span className="text-[8px] font-bold text-rose-500 mt-1 pl-5 text-left">Button text is required</span>
                         )}
-                        <Handle
-                          type="source"
-                          position={Position.Right}
-                          id={`message_with_button-right-${props.id}-${btn.id}`}
-                          className="!h-2.5 !w-2.5 !border-2 !border-white !bg-[#00A884] hover:scale-125 transition-transform"
-                          style={{ right: -5, top: '20px', transform: 'translateY(-50%)' }}
-                        />
+                        {btn.text.length > 0 && (
+                          <Handle
+                            type="source"
+                            position={Position.Right}
+                            id={`message_with_button-right-${props.id}-${btn.id}`}
+                            className="!h-2.5 !w-2.5 !border-2 !border-white !bg-[#00A884] hover:scale-125 transition-transform"
+                            style={{ right: -5, top: '20px', transform: 'translateY(-50%)' }}
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -297,6 +321,11 @@ export default function MasterComponentNode(props: NodeProps) {
                     >
                       <option value="GET">GET</option>
                       <option value="POST">POST</option>
+                      <option value="PUT">PUT</option>
+                      <option value="PATCH">PATCH</option>
+                      <option value="DELETE">DELETE</option>
+                      <option value="HEAD">HEAD</option>
+                      <option value="OPTIONS">OPTIONS</option>
                     </select>
                     <input
                       type="text"
@@ -526,6 +555,13 @@ export default function MasterComponentNode(props: NodeProps) {
                       className="w-full h-16 text-[11px] text-slate-700 leading-relaxed outline-none resize-none bg-transparent"
                       placeholder="Type catalogue intro message..."
                     />
+                    <input
+                      type="text"
+                      value={item.data?.footer || ''}
+                      onChange={(e) => updateItemData(index, 'footer', e.target.value)}
+                      placeholder="Footer text (optional)"
+                      className="text-[9px] text-slate-400 italic outline-none w-full border-t border-slate-50 pt-1 mt-1 bg-transparent"
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -545,6 +581,18 @@ export default function MasterComponentNode(props: NodeProps) {
                           className="flex-1 ml-2 text-[10px] font-bold text-slate-700 outline-none bg-transparent"
                           placeholder="Catalogue Name"
                         />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const newCats = [...catalogues];
+                            newCats.splice(i, 1);
+                            updateItemData(index, 'catalogues', newCats);
+                          }}
+                          className="text-slate-300 hover:text-rose-500 transition-colors cursor-pointer p-1 rounded hover:bg-rose-50 ml-1"
+                          title="Remove Catalogue"
+                        >
+                          <X size={10} />
+                        </button>
                         <Handle
                           type="source"
                           position={Position.Right}
@@ -574,19 +622,6 @@ export default function MasterComponentNode(props: NodeProps) {
               );
           }
         })}
-      </div>
-
-      {/* ── Default Next Step Footer ── */}
-      <div className="bg-slate-100/80 border-t border-slate-200 p-2 flex justify-center items-center relative rounded-b-[18px]">
-        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Default Next Step</span>
-        <Handle
-          type="source"
-          position={Position.Right}
-          id={`master-component-next-${props.id}`}
-          className="!h-3.5 !w-3.5 !border-2 !border-white !bg-slate-400 hover:!bg-[#0a6c5e] hover:scale-125 transition-all shadow-sm"
-          style={{ right: -6, top: '50%', transform: 'translateY(-50%)' }}
-          title="Default Next Step"
-        />
       </div>
     </div>
   );
