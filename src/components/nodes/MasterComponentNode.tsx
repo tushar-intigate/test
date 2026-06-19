@@ -1,22 +1,27 @@
-import { Handle, Position, NodeProps } from '@xyflow/react';
+import { useEffect } from 'react';
+import { Handle, Position, NodeProps, useUpdateNodeInternals } from '@xyflow/react';
 import {
   MessageSquare,
   HelpCircle,
   Globe,
   UserSquare2,
   List,
-  ArrowRight,
   CheckCircle2,
   AlertCircle,
   Play,
   Settings,
   Trash2,
-  Copy
+  Copy,
+  ShoppingBag,
+  Image as ImageIcon,
+  Plus,
+  CircleDot,
+  ToggleRight
 } from 'lucide-react';
 
 interface ContentItem {
   id: string;
-  type: 'humanIntervention' | 'message' | 'setupWebhook' | 'listMessage' | 'questionMessage';
+  type: 'humanIntervention' | 'message' | 'setupWebhook' | 'listMessage' | 'questionMessage' | 'catalogue';
   data?: any;
 }
 
@@ -30,59 +35,87 @@ interface MasterComponentData {
   onSelectNode?: (id: string) => void;
   onCopyNode?: (id: string) => void;
   onDeleteNode?: (id: string) => void;
+  updateNodeData?: (nodeId: string, path: (string | number)[], value: any) => void;
 }
 
 export default function MasterComponentNode(props: NodeProps) {
   const data = props.data as any as MasterComponentData;
   const contentItems = data.content || [];
-  const answers = data.answers || {};
 
-  const handleAnswerChange = (variable: string, value: string) => {
-    if (data.onAnswerChange && variable) {
-      data.onAnswerChange(props.id, variable, value);
+  const updateNodeInternals = useUpdateNodeInternals();
+
+  // Notify React Flow to update handles whenever dynamic content (buttons, list items) changes
+  useEffect(() => {
+    updateNodeInternals(props.id);
+  }, [contentItems, props.id, updateNodeInternals]);
+
+  const updateItemData = (index: number, key: string, value: any) => {
+    if (data.updateNodeData) {
+      data.updateNodeData(props.id, ['content', index, 'data', key], value);
     }
   };
 
+  const updateButtonText = (itemIndex: number, btnIndex: number, newText: string, buttons: any[]) => {
+    const newButtons = [...buttons];
+    newButtons[btnIndex] = { ...newButtons[btnIndex], text: newText };
+    updateItemData(itemIndex, 'buttons', newButtons);
+  };
+
+  const addNewButton = (itemIndex: number, buttons: any[]) => {
+    const newId = Date.now();
+    const newButtons = [...buttons, { text: 'New Button', id: newId, source_handle_type: 'message_with_button' }];
+    updateItemData(itemIndex, 'buttons', newButtons);
+  };
+
   return (
-    <div className="relative w-[300px] rounded-2xl border border-slate-200/80 bg-white shadow-lg hover:shadow-xl transition-shadow duration-200 overflow-hidden">
+    <div className="relative w-[320px] rounded-[18px] border border-slate-200/50 bg-[#f5f1eb] shadow-xl hover:shadow-2xl transition-shadow duration-200 overflow-hidden pb-4">
 
       {/* Target Input Handle on Left */}
       <Handle
         type="target"
         position={Position.Left}
         id={`master-component-left-${props.id}`}
-        className="!h-3 !w-3 !border-2 !border-white !bg-[#075E54] hover:scale-125 transition-transform"
+        className="!h-3 !w-3 !border-2 !border-white !bg-[#0a6c5e] hover:scale-125 transition-transform"
       />
 
+
+
       {/* ── Header ── */}
-      <div className="flex items-center justify-between bg-[#075E54] px-3 py-2">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10">
-            <MessageSquare size={14} className="text-emerald-300" />
-          </div>
-          <div>
-            <h3 className="text-[11px] font-bold text-white leading-tight">Interactive Block</h3>
-            <p className="text-[9px] text-emerald-200/70">ID: {props.id}</p>
-          </div>
+      <div className="flex items-center justify-between bg-[#e8eef1] px-4 py-3 relative border-b border-[#d8e3df]">
+        <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#0a6c5e] rounded-tl-[18px]"></div>
+        <div className="flex items-center gap-2 pl-1">
+          {contentItems[0]?.type === 'listMessage' ? <List size={16} className="text-[#0a6c5e]" /> :
+            contentItems[0]?.type === 'questionMessage' ? <HelpCircle size={16} className="text-[#0a6c5e]" /> :
+              contentItems[0]?.type === 'setupWebhook' ? <Globe size={16} className="text-[#0a6c5e]" /> :
+                contentItems[0]?.type === 'catalogue' ? <ShoppingBag size={16} className="text-[#0a6c5e]" /> :
+                  contentItems[0]?.type === 'humanIntervention' ? <UserSquare2 size={16} className="text-[#0a6c5e]" /> :
+                    <MessageSquare size={16} className="text-[#0a6c5e]" />}
+          <h3 className="text-xs font-bold text-[#0a6c5e] leading-tight uppercase tracking-wider">
+            {contentItems[0]?.type === 'listMessage' ? 'List Message' :
+              contentItems[0]?.type === 'questionMessage' ? 'Ask a Question' :
+                contentItems[0]?.type === 'setupWebhook' ? 'API Webhook' :
+                  contentItems[0]?.type === 'catalogue' ? 'Catalogue' :
+                    contentItems[0]?.type === 'humanIntervention' ? 'Human Handoff' : 'WhatsApp Message'}
+          </h3>
         </div>
 
         {/* Action buttons */}
         <div className="flex items-center gap-0.5">
           <button onClick={(e) => { e.stopPropagation(); data.onPreviewNode?.(props.id); }}
-            className="p-1 rounded text-white/60 hover:bg-white/15 hover:text-white transition cursor-pointer" title="Preview">
-            <Play size={10} className="fill-current" />
+            className="p-1 rounded text-[#0a6c5e]/60 hover:bg-[#0a6c5e]/10 hover:text-[#0a6c5e] transition cursor-pointer" title="Preview">
+            <Play size={12} className="fill-current" />
           </button>
           <button onClick={(e) => { e.stopPropagation(); data.onSelectNode?.(props.id); }}
-            className="p-1 rounded text-white/60 hover:bg-white/15 hover:text-white transition cursor-pointer" title="Edit">
-            <Settings size={10} />
+            className="p-1 rounded text-[#0a6c5e]/60 hover:bg-[#0a6c5e]/10 hover:text-[#0a6c5e] transition cursor-pointer" title="Edit">
+            <Settings size={12} />
           </button>
           <button onClick={(e) => { e.stopPropagation(); data.onCopyNode?.(props.id); }}
-            className="p-1 rounded text-white/60 hover:bg-white/15 hover:text-white transition cursor-pointer" title="Copy">
-            <Copy size={10} />
+            className="p-1 rounded text-[#0a6c5e]/60 hover:bg-[#0a6c5e]/10 hover:text-[#0a6c5e] transition cursor-pointer" title="Copy">
+            <Copy size={12} />
           </button>
           <button onClick={(e) => { e.stopPropagation(); data.onDeleteNode?.(props.id); }}
-            className="p-1 rounded text-white/60 hover:bg-rose-400/30 hover:text-rose-200 transition cursor-pointer" title="Delete">
-            <Trash2 size={10} />
+            className="p-1 rounded text-[#0a6c5e]/60 hover:bg-rose-100 hover:text-rose-500 transition cursor-pointer" title="Delete">
+            <Trash2 size={12} />
           </button>
         </div>
       </div>
@@ -96,34 +129,71 @@ export default function MasterComponentNode(props: NodeProps) {
             case 'message': {
               const text = item.data?.text || '';
               const buttons = item.data?.buttons || [];
+              // const keyword = item.data?.keyword || '';
+
               return (
-                <div key={item.id || index} className="space-y-1.5">
-                  {/* Text Message Bubble */}
-                  <div className="rounded-xl bg-white px-3 py-2 shadow-sm border border-slate-100">
-                    <p className="text-[10px] text-slate-700 whitespace-pre-wrap leading-relaxed">{text}</p>
-                    <div className="mt-1 text-right text-[8px] text-slate-300">10:32 AM</div>
+                <div key={item.id || index} className="space-y-2">
+
+                  {/* Text Message Area */}
+                  <div className={`bg-white rounded-xl border ${text.length === 0 || text.length > 1024 ? 'border-rose-300' : 'border-slate-200'} shadow-sm overflow-hidden flex flex-col`}>
+                    <textarea
+                      value={text}
+                      onChange={(e) => updateItemData(index, 'text', e.target.value)}
+                      className="w-full h-32 p-3 text-[11px] text-slate-700 leading-relaxed outline-none resize-none"
+                      placeholder="Type your message here..."
+                      maxLength={1024}
+                    />
+                    <div className="px-3 py-1.5 flex justify-between items-center bg-white border-t border-slate-50">
+                      <div>
+                        {text.length === 0 && <span className="text-[8px] font-bold text-rose-500">Message cannot be empty</span>}
+                        {text.length > 1024 && <span className="text-[8px] font-bold text-rose-500">Exceeds 1024 characters</span>}
+                      </div>
+                      <span className={`text-[9px] font-medium ${text.length === 0 || text.length > 1024 ? 'text-rose-500' : 'text-slate-400'}`}>{text.length}/1024</span>
+                    </div>
                   </div>
 
-                  {/* Reply Buttons */}
-                  {buttons.length > 0 && (
-                    <div className="rounded-xl border border-slate-100 bg-white overflow-hidden divide-y divide-slate-50">
-                      {buttons.map((btn: any) => (
-                        <div
-                          key={btn.id}
-                          className="relative flex items-center justify-center py-2 text-[10px] font-semibold text-[#00A884] hover:bg-slate-50/50 transition cursor-pointer"
-                        >
-                          <span>{btn.text}</span>
-                          <Handle
-                            type="source"
-                            position={Position.Right}
-                            id={`message_with_button-right-${props.id}-${btn.id}`}
-                            className="!h-3 !w-3 !border-2 !border-white !bg-[#00A884] hover:scale-125 transition-transform"
-                            style={{ right: -6, top: '50%', transform: 'translateY(-50%)' }}
-                          />
+                  {/* Reply Buttons List */}
+                  <div className="space-y-2">
+                    {buttons.map((btn: any, bIdx: number) => (
+                      <div key={btn.id} className={`relative bg-white border ${btn.text.length === 0 || btn.text.length > 20 ? 'border-rose-300' : 'border-slate-200'} rounded-xl px-3 py-2 flex flex-col shadow-sm group`}>
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-2 flex-1">
+                            <CircleDot size={12} className={btn.text.length === 0 || btn.text.length > 20 ? 'text-rose-400' : 'text-slate-400'} shrink-0 />
+                            <input
+                              type="text"
+                              value={btn.text}
+                              onChange={(e) => updateButtonText(index, bIdx, e.target.value, buttons)}
+                              className={`w-full text-center text-[11px] font-semibold outline-none bg-transparent ${btn.text.length === 0 || btn.text.length > 20 ? 'text-rose-500 placeholder-rose-300' : 'text-[#0ea5e9]'}`}
+                              placeholder="Button Text Required"
+                              maxLength={20}
+                            />
+                          </div>
+                          <div className="flex flex-col items-end shrink-0 pl-2">
+                            <span className={`text-[8px] font-medium ${btn.text.length === 0 || btn.text.length > 20 ? 'text-rose-500' : 'text-slate-400'}`}>{btn.text.length}/20</span>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        {btn.text.length === 0 && (
+                          <span className="text-[8px] font-bold text-rose-500 mt-1 pl-5 text-left">Button text is required</span>
+                        )}
+                        <Handle
+                          type="source"
+                          position={Position.Right}
+                          id={`message_with_button-right-${props.id}-${btn.id}`}
+                          className="!h-2.5 !w-2.5 !border-2 !border-white !bg-[#00A884] hover:scale-125 transition-transform"
+                          style={{ right: -5, top: '20px', transform: 'translateY(-50%)' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add Button Action */}
+                  <button
+                    onClick={() => addNewButton(index, buttons)}
+                    className="w-full py-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                  >
+                    <Plus size={12} /> Add Button
+                  </button>
+
                 </div>
               );
             }
@@ -136,38 +206,56 @@ export default function MasterComponentNode(props: NodeProps) {
               const format = item.data?.attributeFormat || 'Any';
 
               return (
-                <div key={item.id || index} className="relative space-y-1.5">
-                  {/* Bot Question */}
-                  <div className="rounded-xl bg-white px-3 py-2 shadow-sm border border-slate-100">
-                    <div className="flex items-center gap-1 mb-1 text-[8px] font-bold text-[#075E54] uppercase tracking-wider">
-                      <HelpCircle size={9} />
-                      <span>{attribute}</span>
+                <div key={item.id || index} className="relative space-y-2">
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col p-2 space-y-2">
+                    <div className="flex items-center gap-1 text-[9px] font-bold text-[#0a6c5e] uppercase tracking-wider">
+                      <HelpCircle size={10} />
+                      <input
+                        type="text"
+                        value={attribute}
+                        onChange={(e) => updateItemData(index, 'attribute', e.target.value)}
+                        placeholder="Attribute Name"
+                        className="bg-slate-50 border border-slate-200 rounded px-1 py-0.5 outline-none flex-1 text-[#0a6c5e]"
+                      />
                     </div>
-                    <p className="text-[10px] text-slate-700 leading-relaxed">{qText}</p>
-                  </div>
-
-                  {/* Answer Input */}
-                  <div className="flex justify-end">
-                    <input
-                      type="text"
-                      placeholder={`Enter ${attribute}...`}
-                      value={answers[attribute] || ''}
-                      onChange={(e) => handleAnswerChange(attribute, e.target.value)}
-                      className="w-[200px] rounded-xl border border-emerald-200/60 bg-emerald-50/50 px-3 py-1.5 text-[10px] text-slate-700 outline-none focus:border-emerald-400 shadow-sm"
+                    <textarea
+                      value={qText}
+                      onChange={(e) => updateItemData(index, 'text', e.target.value)}
+                      className="w-full h-20 text-[11px] text-slate-700 leading-relaxed outline-none resize-none bg-transparent"
+                      placeholder="Type question here..."
                     />
                   </div>
 
-                  {/* Metadata */}
-                  <div className="flex justify-between px-1 text-[8px] text-slate-400">
-                    <span>Format: <b>{format}</b></span>
-                    <span>Attempts: <b>{attempts}</b></span>
+                  <div className="flex gap-2">
+                    <div className="flex-1 bg-white border border-slate-200 rounded-lg p-1.5 shadow-sm">
+                      <span className="text-[8px] font-medium text-slate-400 block mb-0.5">Format</span>
+                      <select
+                        value={format}
+                        onChange={(e) => updateItemData(index, 'attributeFormat', e.target.value)}
+                        className="w-full text-[10px] bg-slate-50 border border-slate-200 rounded outline-none"
+                      >
+                        <option value="Any">Any</option>
+                        <option value="Text">Text</option>
+                        <option value="Number">Number</option>
+                      </select>
+                    </div>
+                    <div className="flex-1 bg-white border border-slate-200 rounded-lg p-1.5 shadow-sm">
+                      <span className="text-[8px] font-medium text-slate-400 block mb-0.5">Attempts</span>
+                      <input
+                        type="number"
+                        value={attempts}
+                        onChange={(e) => updateItemData(index, 'attributeNumberOfAttempt', e.target.value)}
+                        className="w-full text-[10px] bg-slate-50 border border-slate-200 rounded outline-none px-1"
+                        min="1"
+                      />
+                    </div>
                   </div>
 
                   <Handle
                     type="source"
                     position={Position.Right}
                     id={`question-right-${props.id}`}
-                    className="!h-3 !w-3 !border-2 !border-white !bg-teal-500 hover:scale-125 transition-transform"
+                    className="!h-2.5 !w-2.5 !border-2 !border-white !bg-teal-500 hover:scale-125 transition-transform"
                     style={{ right: -18, top: '35%' }}
                   />
                 </div>
@@ -182,49 +270,82 @@ export default function MasterComponentNode(props: NodeProps) {
               const params = reqObj.params || [];
               const isPassed = reqObj.isTestPass;
 
+              const updateReqObj = (key: string, val: any) => {
+                updateItemData(index, 'requestObject', { ...reqObj, [key]: val });
+              };
+
               return (
-                <div key={item.id || index} className="relative rounded-xl border border-indigo-100 bg-white p-2.5 shadow-sm space-y-1.5">
-                  <div className="flex items-center justify-between">
+                <div key={item.id || index} className="relative rounded-xl border border-indigo-200 bg-white p-2.5 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                     <div className="flex items-center gap-1 text-indigo-600">
                       <Globe size={11} />
-                      <span className="text-[9px] font-bold">API Webhook</span>
+                      <span className="text-[10px] font-bold">API Webhook</span>
                     </div>
-                    {isPassed ? (
-                      <span className="flex items-center gap-0.5 text-[8px] font-semibold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded">
-                        <CheckCircle2 size={8} /> Pass
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-0.5 text-[8px] font-semibold text-amber-600 bg-amber-50 px-1 py-0.5 rounded">
-                        <AlertCircle size={8} /> Untested
-                      </span>
-                    )}
+                    <button
+                      onClick={() => updateReqObj('isTestPass', !isPassed)}
+                      className={`flex items-center gap-0.5 text-[8px] font-semibold px-1.5 py-0.5 rounded cursor-pointer transition ${isPassed ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' : 'text-amber-600 bg-amber-50 hover:bg-amber-100'}`}
+                    >
+                      {isPassed ? <><CheckCircle2 size={9} /> Pass</> : <><AlertCircle size={9} /> Untested</>}
+                    </button>
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <span className={`rounded px-1 py-0.5 text-[8px] font-bold text-white ${method === 'POST' ? 'bg-orange-500' : 'bg-blue-500'}`}>
-                      {method}
-                    </span>
-                    <code className="text-[9px] text-slate-500 truncate max-w-[180px] bg-slate-50 px-1 py-0.5 rounded" title={url}>
-                      {url || 'https://...'}
-                    </code>
+                    <select
+                      value={method}
+                      onChange={(e) => updateReqObj('method', e.target.value)}
+                      className={`rounded px-1 py-1 text-[9px] font-bold text-white outline-none ${method === 'POST' ? 'bg-orange-500' : 'bg-blue-500'}`}
+                    >
+                      <option value="GET">GET</option>
+                      <option value="POST">POST</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={url}
+                      onChange={(e) => updateReqObj('url', e.target.value)}
+                      placeholder="https://api.example.com"
+                      className="flex-1 text-[10px] text-slate-700 bg-slate-50 border border-slate-200 px-2 py-1 rounded outline-none focus:border-indigo-400"
+                    />
                   </div>
 
-                  {params.length > 0 && (
-                    <div className="bg-indigo-50/40 p-1.5 rounded-lg text-[8px] space-y-0.5">
-                      {params.map((p: any, i: number) => (
-                        <div key={i} className="flex justify-between text-slate-500">
-                          <span className="font-medium">{p.name}</span>
-                          <span className="text-indigo-500">{p.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="bg-indigo-50/30 p-1.5 rounded-lg space-y-1 border border-indigo-50">
+                    <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-wider block mb-1">Parameters</span>
+                    {params.map((p: any, i: number) => (
+                      <div key={i} className="flex gap-1">
+                        <input
+                          type="text"
+                          value={p.name}
+                          onChange={(e) => {
+                            const newParams = [...params];
+                            newParams[i].name = e.target.value;
+                            updateReqObj('params', newParams);
+                          }}
+                          className="w-1/3 text-[9px] bg-white border border-slate-200 rounded px-1 outline-none text-slate-600"
+                        />
+                        <input
+                          type="text"
+                          value={p.value}
+                          onChange={(e) => {
+                            const newParams = [...params];
+                            newParams[i].value = e.target.value;
+                            updateReqObj('params', newParams);
+                          }}
+                          className="flex-1 text-[9px] bg-white border border-slate-200 rounded px-1 outline-none text-indigo-600"
+                        />
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => updateReqObj('params', [...params, { name: 'key', value: 'value' }])}
+                      className="w-full mt-1 py-1 bg-white border border-indigo-100 rounded flex items-center justify-center gap-1 text-[9px] font-medium text-indigo-500 hover:bg-indigo-50 cursor-pointer"
+                    >
+                      <Plus size={10} /> Add Param
+                    </button>
+                  </div>
 
                   <Handle
                     type="source"
                     position={Position.Right}
                     id={`setup-webhoook-right-${props.id}`}
-                    className="!h-3 !w-3 !border-2 !border-white !bg-indigo-500 hover:scale-125 transition-transform"
+                    className="!h-2.5 !w-2.5 !border-2 !border-white !bg-indigo-500 hover:scale-125 transition-transform"
                     style={{ right: -18, top: '50%', transform: 'translateY(-50%)' }}
                   />
                 </div>
@@ -239,54 +360,125 @@ export default function MasterComponentNode(props: NodeProps) {
               const buttonTitle = item.data?.buttonTitle || 'View Options';
               const sections = item.data?.sections || [];
 
+              const updateListSections = (newSections: any[]) => {
+                updateItemData(index, 'sections', newSections);
+              };
+
               return (
-                <div key={item.id || index} className="space-y-1.5">
-                  {/* List Message Bubble */}
-                  <div className="rounded-xl bg-white px-3 py-2 shadow-sm border border-slate-100 space-y-1">
-                    {header && <p className="text-[9px] font-bold text-slate-600 border-b border-slate-50 pb-1">{header}</p>}
-                    <p className="text-[10px] text-slate-700 leading-relaxed">{body}</p>
-                    {footer && <p className="text-[8px] text-slate-400 italic">{footer}</p>}
+                <div key={item.id || index} className="space-y-2">
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col p-2 space-y-1.5">
+                    <input
+                      type="text"
+                      value={header}
+                      onChange={(e) => updateItemData(index, 'header', e.target.value)}
+                      placeholder="Header text (optional)"
+                      className="text-[10px] font-bold text-slate-600 border-b border-slate-100 pb-1 outline-none w-full"
+                    />
+                    <textarea
+                      value={body}
+                      onChange={(e) => updateItemData(index, 'body', e.target.value)}
+                      className="w-full h-16 text-[11px] text-slate-700 leading-relaxed outline-none resize-none bg-transparent"
+                      placeholder="Type main body message..."
+                    />
+                    <input
+                      type="text"
+                      value={footer}
+                      onChange={(e) => updateItemData(index, 'footer', e.target.value)}
+                      placeholder="Footer text (optional)"
+                      className="text-[9px] text-slate-400 italic outline-none w-full border-t border-slate-50 pt-1"
+                    />
                   </div>
 
-                  {/* List Selector */}
-                  <div className="rounded-xl border border-slate-100 bg-white overflow-hidden shadow-sm">
-                    <div className="flex items-center justify-between bg-slate-50 px-2.5 py-2 border-b border-slate-100">
-                      <div className="flex items-center gap-1 text-[#075E54]">
-                        <List size={10} />
-                        <span className="text-[9px] font-bold uppercase">{buttonTitle}</span>
-                      </div>
-                      <ArrowRight size={9} className="text-slate-400" />
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col p-2 space-y-2">
+                    <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                      <List size={12} className="text-[#0a6c5e]" />
+                      <input
+                        type="text"
+                        value={buttonTitle}
+                        onChange={(e) => updateItemData(index, 'buttonTitle', e.target.value)}
+                        className="text-[10px] font-bold uppercase outline-none text-[#0a6c5e] w-full"
+                        placeholder="Button Title"
+                      />
                     </div>
 
-                    {sections.map((section: any, sIdx: number) => (
-                      <div key={section.id || sIdx} className="p-1.5 space-y-1">
-                        {section.title && (
-                          <div className="px-1 text-[7px] font-bold text-slate-400 uppercase tracking-wider">
-                            {section.title}
-                          </div>
-                        )}
-                        <div className="space-y-1">
-                          {(section.items || []).map((row: any) => (
-                            <div
-                              key={row.id}
-                              className="relative flex items-center justify-between rounded-lg border border-slate-50 bg-slate-50/30 p-1.5 hover:bg-emerald-50/30 hover:border-emerald-100 transition cursor-pointer"
-                            >
-                              <div>
-                                <h4 className="text-[10px] font-bold text-slate-700">{row.title}</h4>
-                                {row.description && <p className="text-[8px] text-slate-400 line-clamp-1">{row.description}</p>}
+                    <div className="space-y-3">
+                      {sections.map((section: any, sIdx: number) => (
+                        <div key={section.id || sIdx} className="space-y-1.5 border border-slate-100 rounded-lg p-1.5 bg-slate-50">
+                          <input
+                            type="text"
+                            value={section.title}
+                            onChange={(e) => {
+                              const newSec = [...sections];
+                              newSec[sIdx].title = e.target.value;
+                              updateListSections(newSec);
+                            }}
+                            className="w-full bg-transparent text-[9px] font-bold text-slate-500 uppercase tracking-wider outline-none px-1"
+                            placeholder="SECTION TITLE"
+                          />
+
+                          <div className="space-y-1.5">
+                            {(section.items || []).map((row: any, rIdx: number) => (
+                              <div key={row.id} className="relative flex flex-col gap-0.5 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm">
+                                <input
+                                  type="text"
+                                  value={row.title}
+                                  onChange={(e) => {
+                                    const newSec = [...sections];
+                                    newSec[sIdx].items[rIdx].title = e.target.value;
+                                    updateListSections(newSec);
+                                  }}
+                                  className="text-[10px] font-bold text-slate-700 outline-none w-[90%]"
+                                  placeholder="Item Title"
+                                />
+                                <input
+                                  type="text"
+                                  value={row.description || ''}
+                                  onChange={(e) => {
+                                    const newSec = [...sections];
+                                    newSec[sIdx].items[rIdx].description = e.target.value;
+                                    updateListSections(newSec);
+                                  }}
+                                  className="text-[9px] text-slate-400 outline-none w-[90%]"
+                                  placeholder="Item Description"
+                                />
+                                <Handle
+                                  type="source"
+                                  position={Position.Right}
+                                  id={row.id}
+                                  className="!h-2.5 !w-2.5 !border-2 !border-white !bg-[#0a6c5e] hover:scale-125 transition-transform"
+                                  style={{ right: -8, top: '50%', transform: 'translateY(-50%)' }}
+                                />
                               </div>
-                              <Handle
-                                type="source"
-                                position={Position.Right}
-                                id={row.id}
-                                className="!h-3 !w-3 !border-2 !border-white !bg-[#075E54] hover:scale-125 transition-transform"
-                                style={{ right: -12, top: '50%', transform: 'translateY(-50%)' }}
-                              />
-                            </div>
-                          ))}
+                            ))}
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              const newSec = [...sections];
+                              if (!newSec[sIdx].items) newSec[sIdx].items = [];
+                              const newItemId = `list_message-right-${props.id}-${sIdx}-${Date.now()}-|None`;
+                              newSec[sIdx].items.push({
+                                id: newItemId,
+                                source_handle_type: newItemId,
+                                title: 'New Item',
+                                description: ''
+                              });
+                              updateListSections(newSec);
+                            }}
+                            className="w-full mt-1 py-1 bg-white border border-slate-200 rounded-lg flex items-center justify-center gap-1 text-[9px] font-medium text-[#0a6c5e] hover:bg-emerald-50 cursor-pointer shadow-sm"
+                          >
+                            <Plus size={10} /> Add Item
+                          </button>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => updateListSections([...sections, { id: `sec_${Date.now()}`, title: 'New Section', items: [] }])}
+                      className="w-full py-2 border border-dashed border-slate-300 rounded-xl flex items-center justify-center gap-1.5 text-[10px] font-semibold text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      <Plus size={12} /> Add Section
+                    </button>
                   </div>
                 </div>
               );
@@ -296,23 +488,80 @@ export default function MasterComponentNode(props: NodeProps) {
             case 'humanIntervention': {
               const isReq = item.data?.isRequesting;
               return (
-                <div key={item.id || index} className="rounded-xl border border-dashed border-rose-200 bg-rose-50/50 p-2.5 space-y-1.5">
-                  <div className="flex items-center gap-1.5 text-rose-600">
-                    <UserSquare2 size={13} />
-                    <span className="text-[10px] font-bold">Human Agent Handoff</span>
+                <div key={item.id || index} className="rounded-xl border border-dashed border-rose-200 bg-white p-3 space-y-2 shadow-sm">
+                  <div className="flex items-center gap-1.5 text-rose-600 border-b border-rose-50 pb-2">
+                    <UserSquare2 size={14} />
+                    <span className="text-[11px] font-bold">Human Agent Handoff</span>
                   </div>
-                  <p className="text-[9px] text-slate-500 leading-relaxed">
-                    Transfers conversation to human support agents.
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isReq ? 'bg-rose-400' : 'bg-slate-400'}`}></span>
-                      <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isReq ? 'bg-rose-500' : 'bg-slate-400'}`}></span>
-                    </span>
-                    <span className="text-[8px] font-bold uppercase text-slate-400">
-                      {isReq ? 'Awaiting Agent' : 'Inactive'}
-                    </span>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] text-slate-500 font-medium">Request Agent?</span>
+                    <button
+                      onClick={() => updateItemData(index, 'isRequesting', !isReq)}
+                      className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                    >
+                      <ToggleRight size={20} className={isReq ? "text-rose-500" : "text-slate-300"} strokeWidth={2} />
+                      <span className={`text-[9px] font-bold uppercase ${isReq ? 'text-rose-500' : 'text-slate-400'}`}>
+                        {isReq ? 'Awaiting' : 'Inactive'}
+                      </span>
+                    </button>
                   </div>
+                </div>
+              );
+            }
+
+            // 6. WhatsApp Catalogue Node
+            case 'catalogue': {
+              const text = item.data?.text || '';
+              const catalogues = item.data?.catalogues || [];
+              return (
+                <div key={item.id || index} className="space-y-2">
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col p-2 space-y-2">
+                    <div className="flex items-center gap-1 text-[9px] font-bold text-teal-600 uppercase tracking-wider">
+                      <ShoppingBag size={10} />
+                      <span>Catalogue Intro</span>
+                    </div>
+                    <textarea
+                      value={text}
+                      onChange={(e) => updateItemData(index, 'text', e.target.value)}
+                      className="w-full h-16 text-[11px] text-slate-700 leading-relaxed outline-none resize-none bg-transparent"
+                      placeholder="Type catalogue intro message..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    {catalogues.map((cat: string, i: number) => (
+                      <div key={i} className="relative bg-white border border-slate-200 rounded-xl px-2 py-1.5 flex items-center shadow-sm">
+                        <div className="h-6 w-6 rounded bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                          <ImageIcon size={10} />
+                        </div>
+                        <input
+                          type="text"
+                          value={cat}
+                          onChange={(e) => {
+                            const newCats = [...catalogues];
+                            newCats[i] = e.target.value;
+                            updateItemData(index, 'catalogues', newCats);
+                          }}
+                          className="flex-1 ml-2 text-[10px] font-bold text-slate-700 outline-none bg-transparent"
+                          placeholder="Catalogue Name"
+                        />
+                        <Handle
+                          type="source"
+                          position={Position.Right}
+                          id={`catalogue-right-${props.id}-${i}`}
+                          className="!h-2.5 !w-2.5 !border-2 !border-white !bg-teal-500 hover:scale-125 transition-transform"
+                          style={{ right: -5, top: '50%', transform: 'translateY(-50%)' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => updateItemData(index, 'catalogues', [...catalogues, 'New Catalogue'])}
+                    className="w-full py-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                  >
+                    <Plus size={12} /> Add Catalogue
+                  </button>
                 </div>
               );
             }
@@ -325,6 +574,19 @@ export default function MasterComponentNode(props: NodeProps) {
               );
           }
         })}
+      </div>
+
+      {/* ── Default Next Step Footer ── */}
+      <div className="bg-slate-100/80 border-t border-slate-200 p-2 flex justify-center items-center relative rounded-b-[18px]">
+        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Default Next Step</span>
+        <Handle
+          type="source"
+          position={Position.Right}
+          id={`master-component-next-${props.id}`}
+          className="!h-3.5 !w-3.5 !border-2 !border-white !bg-slate-400 hover:!bg-[#0a6c5e] hover:scale-125 transition-all shadow-sm"
+          style={{ right: -6, top: '50%', transform: 'translateY(-50%)' }}
+          title="Default Next Step"
+        />
       </div>
     </div>
   );
