@@ -1,5 +1,5 @@
 import { Handle, Position } from '@xyflow/react';
-import { CircleDot, Plus, X } from 'lucide-react';
+import { CircleDot, Plus, X, Upload } from 'lucide-react';
 
 export default function MessageContent({
   item,
@@ -14,6 +14,18 @@ export default function MessageContent({
 }) {
   const text = item.data?.text || '';
   const buttons = item.data?.buttons || [];
+  const mediaType = item.data?.mediaType || 'none';
+  const mediaUrl = item.data?.mediaUrl || '';
+  const mediaName = item.data?.mediaName || '';
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      updateItemData(index, 'mediaUrl', url);
+      updateItemData(index, 'mediaName', file.name);
+    }
+  };
 
   const updateButtonText = (btnIndex: number, newText: string) => {
     const newButtons = [...buttons];
@@ -36,6 +48,64 @@ export default function MessageContent({
 
   return (
     <div className="space-y-2">
+      {/* Media Header Settings */}
+      <div className="bg-white rounded-xl border border-slate-200 p-2.5 flex flex-col gap-2 shadow-sm text-xs">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold text-slate-500 text-[10px]">Media Header</span>
+          <select
+            value={mediaType}
+            onChange={(e) => {
+              updateItemData(index, 'mediaType', e.target.value);
+              if (e.target.value === 'none') {
+                updateItemData(index, 'mediaUrl', '');
+                updateItemData(index, 'mediaName', '');
+              }
+            }}
+            className="text-[10px] border border-slate-200 rounded bg-white px-1.5 py-0.5 outline-none font-medium text-[#0ea5e9] cursor-pointer"
+          >
+            <option value="none">None</option>
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+            <option value="audio">Audio</option>
+            <option value="document">Document</option>
+          </select>
+        </div>
+
+        {mediaType !== 'none' && (
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <label className="flex items-center justify-center gap-1 bg-[#f0faf7] text-[#008069] border border-emerald-100 hover:bg-[#e6f7f3] px-2.5 py-1.5 rounded-lg text-[9px] font-bold cursor-pointer transition select-none flex-1">
+              <Upload size={10} />
+              <span>{mediaName ? 'Change File' : 'Upload File'}</span>
+              <input
+                type="file"
+                accept={
+                  mediaType === 'image' ? 'image/*' :
+                  mediaType === 'video' ? 'video/*' :
+                  mediaType === 'audio' ? 'audio/*' :
+                  '*'
+                }
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </label>
+            {mediaUrl && (
+              <div className="flex items-center gap-1.5 max-w-[50%] overflow-hidden text-[9px] bg-slate-50 px-2 py-1 rounded border border-slate-200 text-slate-500">
+                <span className="truncate flex-1 font-semibold">{mediaName || 'Uploaded'}</span>
+                <button
+                  onClick={() => {
+                    updateItemData(index, 'mediaUrl', '');
+                    updateItemData(index, 'mediaName', '');
+                  }}
+                  className="text-slate-400 hover:text-rose-500 transition-colors"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Text Message Area */}
       <div className={`bg-white rounded-xl border ${text.length === 0 || text.length > 1024 ? 'border-rose-300' : 'border-slate-200'} shadow-sm overflow-hidden flex flex-col`}>
         <textarea

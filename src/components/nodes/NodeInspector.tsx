@@ -1,4 +1,4 @@
-import { Plus, Trash2, MessageSquare, Play } from 'lucide-react';
+import { Plus, Trash2, MessageSquare, Play, Upload, X } from 'lucide-react';
 
 interface NodeInspectorProps {
   selectedNode: any;
@@ -135,6 +135,85 @@ export default function NodeInspector({ selectedNode, updateNodeData }: NodeInsp
                       onChange={(e) => updateNodeData(id, [...basePath, 'data', 'text'], e.target.value)}
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 outline-none resize-none transition-all shadow-sm"
                     />
+                  </div>
+
+                  {/* Media Header Settings */}
+                  <div className="space-y-2 bg-white border border-slate-200 rounded-xl p-2.5 shadow-sm text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-500 text-[10px]">Media Header Type</span>
+                      <select
+                        value={item.data?.mediaType || 'none'}
+                        onChange={(e) => {
+                          updateNodeData(id, [...basePath, 'data', 'mediaType'], e.target.value);
+                          if (e.target.value === 'none') {
+                            updateNodeData(id, [...basePath, 'data', 'mediaUrl'], '');
+                            updateNodeData(id, [...basePath, 'data', 'mediaName'], '');
+                          }
+                        }}
+                        className="text-[10px] border border-slate-200 rounded bg-slate-50 px-1 py-0.5 outline-none font-medium text-slate-600 cursor-pointer"
+                      >
+                        <option value="none">None</option>
+                        <option value="image">Image</option>
+                        <option value="video">Video</option>
+                        <option value="audio">Audio</option>
+                        <option value="document">Document</option>
+                      </select>
+                    </div>
+
+                    {item.data?.mediaType && item.data?.mediaType !== 'none' && (
+                      <div className="space-y-2 pt-1 border-t border-slate-100 mt-1">
+                        <div className="flex gap-2">
+                          <label className="flex items-center justify-center gap-1 bg-[#f0faf7] text-[#008069] border border-emerald-100 hover:bg-[#e6f7f3] px-2 py-1.5 rounded-lg text-[9px] font-bold cursor-pointer transition select-none flex-1">
+                            <Upload size={10} />
+                            <span>{item.data?.mediaName ? 'Change File' : 'Upload File'}</span>
+                            <input
+                              type="file"
+                              accept={
+                                item.data.mediaType === 'image' ? 'image/*' :
+                                item.data.mediaType === 'video' ? 'video/*' :
+                                item.data.mediaType === 'audio' ? 'audio/*' :
+                                '*'
+                              }
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const url = URL.createObjectURL(file);
+                                  updateNodeData(id, [...basePath, 'data', 'mediaUrl'], url);
+                                  updateNodeData(id, [...basePath, 'data', 'mediaName'], file.name);
+                                }
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Or enter URL directly"
+                            value={item.data?.mediaUrl || ''}
+                            onChange={(e) => {
+                              updateNodeData(id, [...basePath, 'data', 'mediaUrl'], e.target.value);
+                              if (!item.data?.mediaName) {
+                                updateNodeData(id, [...basePath, 'data', 'mediaName'], 'Remote Media');
+                              }
+                            }}
+                            className="flex-1 rounded border border-slate-200 px-2 py-1 text-[10px] outline-none"
+                          />
+                        </div>
+                        {item.data?.mediaName && (
+                          <div className="flex items-center justify-between text-[9px] bg-slate-50 px-2 py-1 rounded border border-slate-200 text-slate-500">
+                            <span className="truncate flex-1 font-semibold">{item.data.mediaName}</span>
+                            <button
+                              onClick={() => {
+                                updateNodeData(id, [...basePath, 'data', 'mediaUrl'], '');
+                                updateNodeData(id, [...basePath, 'data', 'mediaName'], '');
+                              }}
+                              className="text-rose-500 hover:bg-rose-150 p-0.5 rounded transition"
+                            >
+                              <X size={10} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Reply Buttons */}
